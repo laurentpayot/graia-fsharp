@@ -1,6 +1,6 @@
 # 🌄 Graia
 
-An F# experimental binary artificial neural network.
+An *experimental* neural network library.
 
 ## Prerequisites
 
