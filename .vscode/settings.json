@@ -5,6 +5,7 @@
         "Graia",
         "Ionide",
         "mnist",
+        "Plotly",
         "Xunit"
     ],
     "testExplorer.hideWhen": "noTests",

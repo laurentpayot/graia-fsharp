@@ -4,10 +4,21 @@
 
 #!fsharp
 
-// #r "../output/bin/Debug/net8.0/graia.dll" // to be used after `dotnet build` (dependencies included)
-
-// dependencies needed for development
+#r "nuget: Plotly.NET"
+#r "nuget: Plotly.NET.Interactive"
 #r "nuget: FSharpPlus"
+
+open Plotly.NET
+
+#!fsharp
+
+let xData = [ 0. .. 10. ]
+let yData = [ 0. .. 10. ]
+Chart.Point(xData, yData)
+
+#!fsharp
+
+// #r "../output/bin/Debug/net8.0/graia.dll" // to be used after `dotnet build` (dependencies included)
 #load "../src/Graia.fs"
 #load "../src/Tools.fs"
 
