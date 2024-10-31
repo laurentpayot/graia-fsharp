@@ -24,3 +24,6 @@ To run Graia along with a F# notebook you will need:
 ## TODO
 
 - use Plotly.NET instead of custom tools https://plotly.net/#For-dotnet-interactive-notebooks
+
+- Microsoft.Data.Analysis
+  - reshape??? https://github.com/dotnet/machinelearning/issues/765#issuecomment-2451019684
