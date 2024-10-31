@@ -16,13 +16,15 @@ open Plotly.NET
 
 let df = DataFrame.LoadCsv("datasets/mnist_train_head.csv")
 
-// df.Head(5)
+df.Head(5)
 
 #!fsharp
 
-let xData = [ 0. .. 10. ]
-let yData = [ 0. .. 10. ]
-Chart.Point(xData, yData)
+// df.Columns.Remove("label")
+let labels = df["label"]
+labels
+df.Columns.Remove("label")
+df
 
 #!fsharp
 
