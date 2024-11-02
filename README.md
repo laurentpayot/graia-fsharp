@@ -21,9 +21,5 @@ To run Graia along with a F# notebook you will need:
 
 1. Download [the MNIST dataset provided in a easy-to-use CSV format](https://www.kaggle.com/datasets/oddrationale/mnist-in-csv).
 1. Extract the two CSV files from the zip archive and place them in a folder named `datasets` inside the `notebooks` folder.
+
 ## TODO
-
-- use Plotly.NET instead of custom tools https://plotly.net/#For-dotnet-interactive-notebooks
-
-- Microsoft.Data.Analysis
-  - reshape??? https://github.com/dotnet/machinelearning/issues/765#issuecomment-2451019684

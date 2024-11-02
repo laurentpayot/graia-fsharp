@@ -5,35 +5,13 @@
 #!fsharp
 
 #r "nuget: FSharpPlus"
-#r "nuget: Microsoft.Data.Analysis"
-#r "nuget: Plotly.NET"
-#r "nuget: Plotly.NET.Interactive"
-
-open Microsoft.Data.Analysis
-open Plotly.NET
-
-#!fsharp
-
-let df = DataFrame.LoadCsv("datasets/mnist_train_head.csv")
-
-df.Head(5)
-
-#!fsharp
-
-// df.Columns.Remove("label")
-let labels = df["label"]
-labels
-df.Columns.Remove("label")
-df
-
-#!fsharp
-
 // #r "../output/bin/Debug/net8.0/graia.dll" // to be used after `dotnet build` (dependencies included)
-#load "../src/Graia.fs"
 #load "../src/Tools.fs"
+#load "../src/Graia.fs"
 
 open Graia
 open Tools
+open FSharpPlus
 
 #!fsharp
 
@@ -46,5 +24,5 @@ images
 |> Array.take 5
 |> Array.map (binarize 200)
 |> Array.map (toSquareSvg 1)
-|> Array.map (fun svg -> svg.DisplayAs("image/svg+xml"))
+|> Array.map _.DisplayAs("image/svg+xml")
 |> ignore
