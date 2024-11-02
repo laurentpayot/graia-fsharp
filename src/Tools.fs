@@ -23,19 +23,26 @@ let binarize (threshold: int) (bytes: byte seq) : byte seq =
     let threshold = byte threshold
     bytes |> Seq.map (fun value -> if value >= threshold then 255uy else 0uy)
 
-let toSquareSvg (size: float) (bytes: byte seq) : string =
+let toRectangleSvg (size: float) (columns: int) (bytes: byte seq) : string =
     let array = Array.ofSeq bytes
-    let side = array.Length |> sqrt
+    let rows = array.Length / columns
 
     let mutable svg =
-        $"""<svg width="{(float side) * size}" height="{(float side) * size}" viewBox="0 0 {side} {side}" xmlns="http://www.w3.org/2000/svg">\n"""
+        $"""<svg width="{(float columns) * size}" height="{(float rows) * size}" viewBox="0 0 {columns} {rows}" xmlns="http://www.w3.org/2000/svg">\n"""
 
-    for y = 0 to side - 1 do
-        for x = 0 to side - 1 do
-            let v = array[x + y * side]
+    for y = 0 to rows - 1 do
+        for x = 0 to columns - 1 do
+            let v = array[x + y * rows]
 
             svg <- $"""{svg}<rect x="{x}" y="{y}" width="1" height="1" fill="rgb({v},{v},{v})"/>"""
 
         svg <- svg + "\n"
 
     svg + "</svg>"
+
+
+let toSquareSvg (size: float) (bytes: byte seq) : string =
+    let array = Array.ofSeq bytes
+    let side = array.Length |> sqrt
+
+    toRectangleSvg size side array
