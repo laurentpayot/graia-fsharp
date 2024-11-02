@@ -40,7 +40,6 @@ let toRectangleSvg (size: float) (columns: int) (bytes: byte seq) : string =
 
     svg + "</svg>"
 
-
 let toSquareSvg (size: float) (bytes: byte seq) : string =
     let array = Array.ofSeq bytes
     let side = array.Length |> sqrt
