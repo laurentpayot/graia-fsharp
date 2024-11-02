@@ -22,7 +22,5 @@ printfn $"Images: {Seq.length images}"
 
 images
 |> Array.take 5
-|> Array.map (binarize 200)
-|> Array.map (toSquareSvg 1)
-|> Array.map _.DisplayAs("image/svg+xml")
+|> Array.map (binarize 200 >> toSquareSvg 1 >> _.DisplayAs("image/svg+xml"))
 |> ignore
