@@ -4,6 +4,7 @@ open System.IO
 
 open FSharpPlus
 
+
 let loadMnist (path: string) : string array * byte seq array =
     File.ReadAllText(path)
     |> String.split [ "\n" ]
