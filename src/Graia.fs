@@ -29,9 +29,9 @@ printfn $"Vector512: {Vector512.IsHardwareAccelerated}"
 
 type Config = {
     inputs: int
+    outputs: int
     layerNodes: int
     layers: int
-    outputs: int
     seed: int option
 }
 
@@ -49,14 +49,16 @@ type Model = {
     history: History
 }
 
+let modelInit (config: Config) : Model =
+    let {
+            inputs = inputs
+            outputs = outputs
+            layerNodes = layerNodes
+            layers = layers
+            seed = seed
+        } =
+        config
 
-let modelInit
-    (inputs: int)
-    (layerNodes: int)
-    (layers: int)
-    (outputs: int)
-    (seed: int option)
-    : Model =
     let parametersNb: int =
         (inputs * layerNodes)
         + (layerNodes * layerNodes * (layers - 1))
@@ -66,13 +68,7 @@ let modelInit
 
     {
         graiaVersion = VERSION
-        config = {
-            inputs = inputs
-            layerNodes = layerNodes
-            layers = layers
-            outputs = outputs
-            seed = seed
-        }
+        config = config
         inputWeights = [||]
         hiddenWeights = [||]
         outputWeights = [||]

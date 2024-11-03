@@ -34,4 +34,10 @@ images[5]
 
 #!fsharp
 
-let model = modelInit // TODO!!!!!!!!!
+let model = modelInit {
+    inputs = 28*28
+    outputs = 10
+    layerNodes = 128
+    layers = 3
+    seed = Some(123456)
+}
