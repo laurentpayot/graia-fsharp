@@ -31,3 +31,7 @@ images[5]
 |> Chart.withSize(240.,200.)
 |> Chart.withTitle "MNIST digit"
 |> Chart.withMarginSize(10.,10.,30.,10.)
+
+#!fsharp
+
+let model = modelInit // TODO!!!!!!!!!
