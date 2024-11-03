@@ -5,24 +5,28 @@
 #!fsharp
 
 #r "nuget: FSharpPlus"
+#r "nuget: Plotly.NET"
+#r "nuget: Plotly.NET.Interactive"
 // #r "../output/bin/Debug/net8.0/graia.dll" // to be used after `dotnet build` (dependencies included)
-#load "../src/Tools.fs"
 #load "../src/Graia.fs"
+#load "../src/Tools.fs"
 
+open FSharpPlus
+open Plotly.NET
 open Graia
 open Tools
-open FSharpPlus
-
-let showSvg =  fun (svg: string) -> svg.DisplayAs("image/svg+xml")
 
 #!fsharp
 
-let labels, images = loadMnist "datasets/mnist_train_head.csv"
+let labels, images = loadMnistCsv "datasets/mnist_train_head.csv"
 printfn $"Images: {Seq.length images}"
 
 #!fsharp
 
-images
-|> Array.take 5
-|> Array.map (binarize 200 >> toSquareSvg 5 >> showSvg)
-()
+images[5]
+|> Seq.chunkBySize 28
+|> Seq.rev
+|> Chart.Heatmap
+|> Chart.withSize(300.,250.)
+|> Chart.withTitle "MNIST digit"
+|> Chart.withMarginSize(10.,10.,30.,10.)
