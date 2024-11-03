@@ -24,6 +24,7 @@ printfn $"Images: {Seq.length images}"
 #!fsharp
 
 images[5]
+|> Seq.map (fun x -> if x >= 200 then 255 else 0)
 |> Seq.chunkBySize 28
 |> Seq.rev
 |> Chart.Heatmap
