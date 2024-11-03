@@ -28,6 +28,6 @@ images[5]
 |> Seq.chunkBySize 28
 |> Seq.rev
 |> Chart.Heatmap
-|> Chart.withSize(300.,250.)
+|> Chart.withSize(240.,200.)
 |> Chart.withTitle "MNIST digit"
 |> Chart.withMarginSize(10.,10.,30.,10.)
