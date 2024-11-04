@@ -7,9 +7,9 @@ printfn $"🌄 Graia v{VERSION}"
 open System.Runtime.Intrinsics
 open System
 
-printfn $"Vector128: {Vector128.IsHardwareAccelerated}"
-printfn $"Vector256: {Vector256.IsHardwareAccelerated}"
-printfn $"Vector512: {Vector512.IsHardwareAccelerated}"
+printfn $"{if Vector128.IsHardwareAccelerated then '✅' else '❌'} Vector128"
+printfn $"{if Vector256.IsHardwareAccelerated then '✅' else '❌'} Vector256"
+printfn $"{if Vector512.IsHardwareAccelerated then '✅' else '❌'} Vector512"
 
 // open System.Collections
 // open System
