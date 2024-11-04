@@ -23,3 +23,5 @@ To run Graia along with a F# notebook you will need:
 1. Extract the two CSV files from the zip archive and place them in a folder named `datasets` inside the `notebooks` folder.
 
 ## TODO
+
+- use builder pattern for model generation https://sporto.github.io/elm-patterns/basic/builder-pattern.html
