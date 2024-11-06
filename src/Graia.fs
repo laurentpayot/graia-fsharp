@@ -4,15 +4,7 @@ let VERSION = "0.0.1"
 
 printfn $"🌄 Graia v{VERSION}"
 
-open System.Runtime.Intrinsics
-open System
-
-printfn $"{if Vector128.IsHardwareAccelerated then '✅' else '❌'} Vector128"
-printfn $"{if Vector256.IsHardwareAccelerated then '✅' else '❌'} Vector256"
-printfn $"{if Vector512.IsHardwareAccelerated then '✅' else '❌'} Vector512"
-
 // open System.Collections
-// open System
 
 // let a: BitArray = BitArray(3)
 // let b: BitArray = BitArray(3)
@@ -49,6 +41,7 @@ type Model = {
     history: History
 }
 
+
 let modelInit (config: Config) : Model =
     let {
             inputs = inputs
@@ -74,3 +67,7 @@ let modelInit (config: Config) : Model =
         outputWeights = [||]
         history = { loss = [||]; accuracy = [||] }
     }
+
+let fit (xs: array<array<bool>>) (ys: array<int>) (epochs: int) (model: Model) : Model =
+    // TODO
+    model
