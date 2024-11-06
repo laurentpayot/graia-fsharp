@@ -24,5 +24,4 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- evaluate Walrus https://github.com/brianberns/Walrus/issues/1
 - use builder pattern for model generation https://sporto.github.io/elm-patterns/basic/builder-pattern.html

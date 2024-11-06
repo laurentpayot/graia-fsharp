@@ -6,32 +6,24 @@
 
 #r "nuget: Plotly.NET"
 #r "nuget: Plotly.NET.Interactive"
-#r "nuget: Walrus"
 #r "nuget: FSharpPlus"
 
 open Plotly.NET
-open Walrus
 open FSharpPlus
 
 #!fsharp
 
 // #r "../output/bin/Debug/net8.0/graia.dll" // to be used after `dotnet build` (dependencies included)
 #load "../src/Graia.fs"
-// #load "../src/Tools.fs"
+#load "../src/Tools.fs"
 
 open Graia
-// open Tools
+open Tools
 
 #!fsharp
 
-// let labels, images = loadMnistCsv "datasets/mnist_train_head.csv"
-// printfn $"Images: {Seq.length images}"
-let df = Table.loadCsvFile "datasets/mnist_train_head.csv"
-// printfn $"Samples: {df.RowCount}"
-let labels = df?label
-
-// let images = Table.ofColumns [1..] df
-// labels.Values
+let labels, images = loadMnistCsv "datasets/mnist_train_head.csv"
+printfn $"Images: {Seq.length images}"
 
 #!fsharp
 
