@@ -24,4 +24,6 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
+- make Tools.loadMnistCsv return a *bitArray* array
+- a layer weights *is a pair of bitArrays*
 - use builder pattern for model generation https://sporto.github.io/elm-patterns/basic/builder-pattern.html
