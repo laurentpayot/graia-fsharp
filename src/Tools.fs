@@ -14,7 +14,13 @@ let loadMnistCsv (path: string) : string array * int seq array =
     |> fold
         (fun acc row ->
             let label = Seq.head row
-            let data = Seq.skip 1 row |> Seq.map int
+
+            let data =
+                row
+                // remove label column
+                |> Seq.skip 1
+                |> Seq.map int
+
             Seq.append acc [| (label, data) |])
         [||]
     |> Array.ofSeq
