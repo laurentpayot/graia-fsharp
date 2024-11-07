@@ -24,7 +24,9 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- use .NET 9.0
 - make Tools.loadMnistCsv return a *bitArray* array
 - a layer weights *is a pair of bitArrays*
+  - first try with naive 1,1
+  - then try with 1,1 being 2 (AND result popcount left shift by 1) and 0,0 being -1
 - use builder pattern for model generation https://sporto.github.io/elm-patterns/basic/builder-pattern.html
+- use .NET 9.0 when released
