@@ -2,6 +2,7 @@
 
 open System.Collections
 open System.Numerics
+open System
 
 
 let VERSION = "0.0.1"
@@ -39,7 +40,7 @@ type History = {
 type NodeValues = array<BitArray>
 
 // excitatory bits * inhibitory bits
-type Weights = array<BitArray> * array<BitArray>
+type Weights = array<BitArray * BitArray>
 
 type Model = {
     graiaVersion: string
@@ -51,7 +52,7 @@ type Model = {
 }
 
 
-let modelInit (config: Config) : Model =
+let init (config: Config) : Model =
     let {
             inputs = inputs
             outputs = outputs
@@ -66,16 +67,30 @@ let modelInit (config: Config) : Model =
         + (layerNodes * layerNodes * (layers - 1))
         + (layerNodes * outputs)
 
-    printfn $"🌄 Graia model with {parametersNb} parameters ready."
+    let rnd =
+        match seed with
+        | Some seed -> Random(seed)
+        | None -> Random()
 
-    {
+    let randomBitArray (length: int) : BitArray =
+        let bytes = Array.zeroCreate length
+        rnd.NextBytes bytes
+        bytes |> Array.map (fun x -> x > 127uy) |> BitArray
+
+    let randomWeights (dim1: int) (dim2: int) : Weights =
+        Array.init dim2 (fun _ -> randomBitArray dim1, randomBitArray dim1)
+
+    let model = {
         graiaVersion = VERSION
         config = config
-        inputWeights = ([||], [||])
-        hiddenWeights = [||]
-        outputWeights = ([||], [||])
+        inputWeights = randomWeights inputs layerNodes
+        hiddenWeights = Array.init layers (fun _ -> randomWeights layerNodes layerNodes)
+        outputWeights = randomWeights layerNodes outputs
         history = { loss = [||]; accuracy = [||] }
     }
+
+    printfn $"🌄 Graia model with {parametersNb} parameters ready."
+    model
 
 
 //! waiting for native bitArray PopCount https://github.com/dotnet/runtime/issues/104299
