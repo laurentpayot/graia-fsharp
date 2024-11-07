@@ -101,8 +101,9 @@ let bitArrayPopCount3 (ba: BitArray) =
 
     count
 
+// https://stackoverflow.com/a/67248403/2675387
+let ints = Array.create ((c.Count >>> 5) + 1) 0u
 let bitArrayPopCount4 (ba: BitArray) =
-    let ints = Array.create ((ba.Count >>> 5) + 1) 0u
     ba.CopyTo(ints, 0)
     ints
     |> Array.sumBy BitOperations.PopCount
