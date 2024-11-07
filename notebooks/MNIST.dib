@@ -51,5 +51,7 @@ let model = init {
 
 let bitArrayImages = intRowsToBitArrays 200 images
 
+#!fsharp
+
 model
-|> fit bitArrayImages labels 100
+|> fit bitArrayImages labels 1000

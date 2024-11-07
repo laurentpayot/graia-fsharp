@@ -101,6 +101,17 @@ let private bitArrayPopCount (ba: BitArray) =
     intArray |> Array.sumBy BitOperations.PopCount
 
 
-let fit (xs: array<NodeValues>) (ys: array<int>) (epochs: int) (model: Model) : Model =
-    // TODO
-    model
+let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
+    if epochs < 1 then
+        model
+    else
+        let newModel =
+            Array.fold2
+                (fun model xs y -> model
+
+                )
+                model
+                xsRows
+                yRows
+
+        fit xsRows yRows (epochs - 1) newModel
