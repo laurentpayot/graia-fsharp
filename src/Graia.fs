@@ -36,12 +36,15 @@ type History = {
     accuracy: array<float>
 }
 
+// excitatory bits * inhibitory bits
+type Weights = array<BitArray> * array<BitArray>
+
 type Model = {
     graiaVersion: string
     config: Config
-    inputWeights: array<array<int>>
-    hiddenWeights: array<array<array<int>>>
-    outputWeights: array<array<int>>
+    inputWeights: Weights
+    hiddenWeights: array<Weights>
+    outputWeights: Weights
     history: History
 }
 
