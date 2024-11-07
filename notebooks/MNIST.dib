@@ -45,3 +45,63 @@ let model = modelInit {
     layers = 3
     seed = Some(123456)
 }
+
+#!fsharp
+
+open System.Collections
+
+let a: BitArray = BitArray(3)
+let b: BitArray = BitArray(3)
+
+a.Set(0, true)
+b.Set(2, true)
+
+for x in a do
+    printfn $"%A{x}"
+
+printfn $"a = %A{a}"
+printfn $"b = %A{b}"
+
+printfn $"a Count = %A{a.Count}"
+printfn $"a Length = %A{a.Length}"
+
+
+
+let c: BitArray = BitArray(10000000)
+c.Set(100, true)
+c.Set(100000, true)
+
+let bitArrayPopCount1 (ba: BitArray) =
+    let mutable count = 0
+
+    for i = 0 to ba.Count - 1 do
+        if ba.[i] then
+            count <- count + 1
+
+    count
+
+let bitArrayPopCount2 (ba: BitArray) =
+    let mutable count = 0
+
+    for i in [0 .. ba.Count - 1] do
+        if ba.Get(i) then
+            count <- count + 1
+
+    count
+
+let bitArrayPopCount3 (ba: BitArray) =
+    let mutable count = 0
+
+    let en = ba.GetEnumerator()
+
+    while en.MoveNext() do
+        if en.Current :?> bool then
+            count <- count + 1
+
+    count
+
+let sw = System.Diagnostics.Stopwatch.StartNew()
+let bc = bitArrayPopCount1 c
+sw.Stop()
+printfn "%A" sw.Elapsed
+bc
