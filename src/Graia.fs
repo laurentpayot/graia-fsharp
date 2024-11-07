@@ -1,5 +1,9 @@
 ﻿module Graia
 
+open System.Collections
+open System.Numerics
+
+
 let VERSION = "0.0.1"
 
 printfn $"🌄 Graia v{VERSION}"
@@ -67,6 +71,15 @@ let modelInit (config: Config) : Model =
         outputWeights = [||]
         history = { loss = [||]; accuracy = [||] }
     }
+
+
+//! waiting for native bitArray PopCount https://github.com/dotnet/runtime/issues/104299
+let private bitArrayPopCount (ba: BitArray) =
+    // https://stackoverflow.com/a/67248403/2675387
+    let intArray = Array.create ((ba.Count >>> 5) + 1) 0u
+    ba.CopyTo(intArray, 0)
+    intArray |> Array.sumBy BitOperations.PopCount
+
 
 let fit (xs: array<array<bool>>) (ys: array<int>) (epochs: int) (model: Model) : Model =
     // TODO

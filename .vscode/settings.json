@@ -6,6 +6,7 @@
         "Ionide",
         "mnist",
         "Plotly",
+        "popcount",
         "Xunit"
     ],
     "testExplorer.hideWhen": "noTests",
