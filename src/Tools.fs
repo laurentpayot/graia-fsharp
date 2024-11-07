@@ -2,6 +2,7 @@
 
 open System.IO
 open System
+open System.Collections
 
 open FSharpPlus
 
@@ -29,3 +30,7 @@ let loadMnistCsv (path: string) : array<int> * array<seq<int>> =
         [||]
     |> Array.ofSeq
     |> Array.unzip
+
+let intRowsToBitArrays (threshold: int) (intRows: array<seq<int>>) : array<BitArray> =
+    intRows
+    |> Array.map ((Seq.map (fun v -> v >= threshold)) >> Array.ofSeq >> BitArray)

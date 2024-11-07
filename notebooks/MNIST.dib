@@ -8,6 +8,7 @@
 #r "nuget: Plotly.NET.Interactive"
 #r "nuget: FSharpPlus"
 
+open System.Collections
 open Plotly.NET
 open FSharpPlus
 
@@ -45,3 +46,10 @@ let model = init {
     layers = 3
     seed = Some(123456)
 }
+
+#!fsharp
+
+let bitArrayImages = intRowsToBitArrays 200 images
+
+model
+|> fit bitArrayImages labels 100

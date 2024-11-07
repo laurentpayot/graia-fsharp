@@ -37,7 +37,7 @@ type History = {
     accuracy: array<float>
 }
 
-type NodeValues = array<BitArray>
+type NodeValues = BitArray
 
 // excitatory bits * inhibitory bits
 type Weights = array<BitArray * BitArray>
@@ -101,6 +101,6 @@ let private bitArrayPopCount (ba: BitArray) =
     intArray |> Array.sumBy BitOperations.PopCount
 
 
-let fit (xs: NodeValues) (ys: array<int>) (epochs: int) (model: Model) : Model =
+let fit (xs: array<NodeValues>) (ys: array<int>) (epochs: int) (model: Model) : Model =
     // TODO
     model
