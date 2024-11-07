@@ -24,7 +24,6 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- make Tools.loadMnistCsv return a *bitArray* array
 - a layer weights *is a pair of bitArrays*
   - first try with naive 1,1
   - then try with 1,1 being 2 (AND result popcount left shift by 1) and 0,0 being -1
