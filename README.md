@@ -24,6 +24,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
+- use Array2D instead of array of arrays for hidden layers??? https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/arrays#multidimensional-arrays
 - a layer weights *is a pair of bitArrays*
   - first try with naive 1,1
   - then try with 1,1 being 2 (AND result popcount left shift by 1) and 0,0 being -1
