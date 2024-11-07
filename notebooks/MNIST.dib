@@ -49,6 +49,7 @@ let model = modelInit {
 #!fsharp
 
 open System.Collections
+open System.Numerics
 
 let a: BitArray = BitArray(3)
 let b: BitArray = BitArray(3)
@@ -100,8 +101,14 @@ let bitArrayPopCount3 (ba: BitArray) =
 
     count
 
+let bitArrayPopCount4 (ba: BitArray) =
+    let ints = Array.create ((ba.Count >>> 5) + 1) 0u
+    ba.CopyTo(ints, 0)
+    ints
+    |> Array.sumBy BitOperations.PopCount
+
 let sw = System.Diagnostics.Stopwatch.StartNew()
-let bc = bitArrayPopCount1 c
+let bc = bitArrayPopCount4 c
 sw.Stop()
 printfn "%A" sw.Elapsed
 bc
