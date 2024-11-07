@@ -36,6 +36,8 @@ type History = {
     accuracy: array<float>
 }
 
+type NodeValues = array<BitArray>
+
 // excitatory bits * inhibitory bits
 type Weights = array<BitArray> * array<BitArray>
 
@@ -69,9 +71,9 @@ let modelInit (config: Config) : Model =
     {
         graiaVersion = VERSION
         config = config
-        inputWeights = [||]
+        inputWeights = ([||], [||])
         hiddenWeights = [||]
-        outputWeights = [||]
+        outputWeights = ([||], [||])
         history = { loss = [||]; accuracy = [||] }
     }
 
@@ -84,6 +86,6 @@ let private bitArrayPopCount (ba: BitArray) =
     intArray |> Array.sumBy BitOperations.PopCount
 
 
-let fit (xs: array<array<bool>>) (ys: array<int>) (epochs: int) (model: Model) : Model =
+let fit (xs: NodeValues) (ys: array<int>) (epochs: int) (model: Model) : Model =
     // TODO
     model
