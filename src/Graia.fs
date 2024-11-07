@@ -105,13 +105,31 @@ let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model
     if epochs < 1 then
         model
     else
-        let newModel =
+        let epochModel =
             Array.fold2
-                (fun model xs y -> model
-
-                )
+                (fun model xs y ->
+                    // TODO
+                    model)
                 model
                 xsRows
                 yRows
 
-        fit xsRows yRows (epochs - 1) newModel
+        let epochModel' = {
+            epochModel with
+                history.loss =
+                    // model.history with
+                    //     loss =
+                    Array.append model.history.loss [| 0.0 |]
+        }
+
+        let curr = model.history.loss.Length + 1
+        let total = model.history.loss.Length + epochs
+        let progress = String.replicate (12 * curr / total) "█"
+        let rest = String.replicate (12 - progress.Length) "░"
+        let progressBar = progress + rest
+
+        //! no way to update the same line https://stackoverflow.com/questions/47675136/is-there-a-way-to-update-the-same-line-in-f-interactive-using-printf
+        printfn
+            $"Epoch {curr}/{total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%\t\r"
+
+        fit xsRows yRows (epochs - 1) epochModel'
