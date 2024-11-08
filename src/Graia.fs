@@ -132,6 +132,6 @@ let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model
         // printf "\u001b[1G"
         // Console.SetCursorPosition(0, 0)
         printfn
-            $"Epoch {curr}/{total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
+            $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
         fit xsRows yRows (epochs - 1) epochModel'
