@@ -46,7 +46,7 @@ type Model = {
     graiaVersion: string
     config: Config
     inputWeights: Weights
-    hiddenWeights: array<Weights>
+    hiddenLayersWeights: array<Weights>
     outputWeights: Weights
     history: History
 }
@@ -84,7 +84,7 @@ let init (config: Config) : Model =
         graiaVersion = VERSION
         config = config
         inputWeights = randomWeights inputs layerNodes
-        hiddenWeights = Array.init layers (fun _ -> randomWeights layerNodes layerNodes)
+        hiddenLayersWeights = Array.init layers (fun _ -> randomWeights layerNodes layerNodes)
         outputWeights = randomWeights layerNodes outputs
         history = { loss = [||]; accuracy = [||] }
     }
@@ -100,8 +100,8 @@ let private bitArrayPopCount (ba: BitArray) =
     ba.CopyTo(intArray, 0)
     intArray |> Array.sumBy BitOperations.PopCount
 
-let private outputs (xs: NodeValues) (interWts: Weights) : NodeValues =
-    interWts
+let private outputs (wts: Weights) (xs: NodeValues) : NodeValues =
+    wts
     |> Array.map (fun (plusBits, minusBits) ->
         let positives = bitArrayPopCount (xs.And(plusBits))
         let negatives = bitArrayPopCount (xs.And(minusBits))
@@ -110,6 +110,25 @@ let private outputs (xs: NodeValues) (interWts: Weights) : NodeValues =
     |> BitArray
 
 let private rowFit (model: Model) (xs: NodeValues) (y: int) : Model =
+    let postInputValues = outputs model.inputWeights xs
+
+    let hiddenLayersValues =
+        model.hiddenLayersWeights
+        |> Array.fold
+            (fun layerValues (wts: Weights) ->
+                let lastLayerValues = Array.last layerValues
+                let lastLayerOutputs = outputs wts lastLayerValues
+                Array.append layerValues [| lastLayerOutputs |])
+            [| postInputValues |]
+        |> Array.tail
+
+    let outputValues = outputs model.outputWeights (Array.last hiddenLayersValues)
+
+    // let answer = Array.
+
+
+
+
     // TODO
     model
 

@@ -42,8 +42,8 @@ images[5]
 let model = init {
     inputs = 28*28
     outputs = 10
-    layerNodes = 16
-    layers = 3
+    layerNodes = 4
+    layers = 2
     seed = Some(123456)
 }
 
