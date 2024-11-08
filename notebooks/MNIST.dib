@@ -42,7 +42,7 @@ images[5]
 let model = init {
     inputs = 28*28
     outputs = 10
-    layerNodes = 128
+    layerNodes = 16
     layers = 3
     seed = Some(123456)
 }
@@ -55,3 +55,4 @@ let bitArrayImages = intRowsToBitArrays 200 images
 
 model
 |> fit bitArrayImages labels 10
+// |> printfn "Model: %O"

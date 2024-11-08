@@ -129,7 +129,9 @@ let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model
         let progressBar = progress + rest
 
         //! no way to update the same line https://stackoverflow.com/questions/47675136/is-there-a-way-to-update-the-same-line-in-f-interactive-using-printf
+        // printf "\u001b[1G"
+        // Console.SetCursorPosition(0, 0)
         printfn
-            $"Epoch {curr}/{total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%\t\r"
+            $"Epoch {curr}/{total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
         fit xsRows yRows (epochs - 1) epochModel'
