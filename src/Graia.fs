@@ -100,8 +100,16 @@ let private bitArrayPopCount (ba: BitArray) =
     ba.CopyTo(intArray, 0)
     intArray |> Array.sumBy BitOperations.PopCount
 
+let private outputs (xs: NodeValues) (interWts: Weights) : NodeValues =
+    interWts
+    |> Array.map (fun (plusBits, minusBits) ->
+        let positives = bitArrayPopCount (xs.And(plusBits))
+        let negatives = bitArrayPopCount (xs.And(minusBits))
 
-let rowFit (model: Model) (xs: NodeValues) (y: int) : Model =
+        positives > negatives)
+    |> BitArray
+
+let private rowFit (model: Model) (xs: NodeValues) (y: int) : Model =
     // TODO
     model
 
