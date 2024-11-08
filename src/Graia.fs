@@ -25,8 +25,8 @@ printfn $"🌄 Graia v{VERSION}"
 
 
 type Config = {
-    inputs: int
-    outputs: int
+    inputBits: int
+    outputBytes: int
     layerNodes: int
     layers: int
     seed: int option
@@ -37,7 +37,7 @@ type History = {
     accuracy: array<float>
 }
 
-type NodeValues = BitArray
+type NodeBits = BitArray
 
 // excitatory bits * inhibitory bits
 type Weights = array<BitArray * BitArray>
@@ -54,18 +54,20 @@ type Model = {
 
 let init (config: Config) : Model =
     let {
-            inputs = inputs
-            outputs = outputs
+            inputBits = inputBits
+            outputBytes = outputBytes
             layerNodes = layerNodes
             layers = layers
             seed = seed
         } =
         config
 
+    let outputBits = outputBytes * 8
+
     let parametersNb: int =
-        (inputs * layerNodes)
+        (inputBits * layerNodes)
         + (layerNodes * layerNodes * (layers - 1))
-        + (layerNodes * outputs)
+        + (layerNodes * outputBits)
 
     let rnd =
         match seed with
@@ -83,9 +85,9 @@ let init (config: Config) : Model =
     let model = {
         graiaVersion = VERSION
         config = config
-        inputWeights = randomWeights inputs layerNodes
+        inputWeights = randomWeights inputBits layerNodes
         hiddenLayersWeights = Array.init (layers - 1) (fun _ -> randomWeights layerNodes layerNodes)
-        outputWeights = randomWeights layerNodes outputs
+        outputWeights = randomWeights layerNodes outputBytes
         history = { loss = [||]; accuracy = [||] }
     }
 
@@ -100,7 +102,7 @@ let private bitArrayPopCount (ba: BitArray) =
     ba.CopyTo(intArray, 0)
     intArray |> Array.sumBy BitOperations.PopCount
 
-let private outputs (wts: Weights) (xs: NodeValues) : NodeValues =
+let private layerOutputs (wts: Weights) (xs: NodeBits) : NodeBits =
     wts
     |> Array.map (fun (plusBits, minusBits) ->
         let positives = bitArrayPopCount (xs.And(plusBits))
@@ -109,31 +111,34 @@ let private outputs (wts: Weights) (xs: NodeValues) : NodeValues =
         positives > negatives)
     |> BitArray
 
-let private rowFit (model: Model) (xs: NodeValues) (y: int) : Model =
-    let postInputValues = outputs model.inputWeights xs
+let maxByteIndex (xs: array<byte>) : int =
+    xs |> Array.indexed |> Array.maxBy snd |> fst
 
-    let hiddenLayersValues =
+let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
+    let postInputBits = layerOutputs model.inputWeights xs
+
+    let hiddenLayersBits =
         model.hiddenLayersWeights
         |> Array.fold
-            (fun layerValues (wts: Weights) ->
-                let lastLayerValues = Array.last layerValues
-                let lastLayerOutputs = outputs wts lastLayerValues
-                Array.append layerValues [| lastLayerOutputs |])
-            [| postInputValues |]
+            (fun layerBits (wts: Weights) ->
+                let lastLayerBits = Array.last layerBits
+                let lastLayerOutputs = layerOutputs wts lastLayerBits
+                Array.append layerBits [| lastLayerOutputs |])
+            [| postInputBits |]
         |> Array.tail
 
-    let outputValues = outputs model.outputWeights (Array.last hiddenLayersValues)
+    let finalBits = layerOutputs model.outputWeights (Array.last hiddenLayersBits)
+    let finalBytes: array<byte> = Array.zeroCreate model.config.outputBytes
+    finalBits.CopyTo(finalBytes, 0)
 
-    // let answer = Array.
-
-
-
+    let answer = maxByteIndex finalBytes
+    let wasGood = (answer = y) && finalBytes[answer] > 0uy
 
     // TODO
     model
 
 
-let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
+let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
     if epochs < 1 then
         model
     else

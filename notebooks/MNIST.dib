@@ -8,7 +8,6 @@
 #r "nuget: Plotly.NET.Interactive"
 #r "nuget: FSharpPlus"
 
-open System.Collections
 open Plotly.NET
 open FSharpPlus
 
@@ -29,7 +28,7 @@ printfn $"Images: {Array.length images}"
 #!fsharp
 
 images[5]
-|> Seq.map (fun x -> if x >= 200 then 1 else 0)
+|> Seq.map (fun x -> if x >= 200uy then 1 else 0)
 |> Seq.chunkBySize 28
 |> Seq.rev
 |> Chart.Heatmap
@@ -40,8 +39,8 @@ images[5]
 #!fsharp
 
 let model = init {
-    inputs = 28*28
-    outputs = 10
+    inputBits = 28*28
+    outputBytes = 10
     layerNodes = 4
     layers = 2
     seed = Some(123456)
@@ -49,7 +48,7 @@ let model = init {
 
 #!fsharp
 
-let bitArrayImages = intRowsToBitArrays 200 images
+let bitArrayImages = byteRowsToBitArrays 200uy images
 
 #!fsharp
 

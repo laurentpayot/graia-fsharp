@@ -7,7 +7,7 @@ open System.Collections
 open FSharpPlus
 
 
-let loadMnistCsv (path: string) : array<int> * array<seq<int>> =
+let loadMnistCsv (path: string) : array<int> * array<seq<byte>> =
     File.ReadAllText(path)
     |> String.split [ "\n" ]
     // stop at the last empty line
@@ -24,13 +24,13 @@ let loadMnistCsv (path: string) : array<int> * array<seq<int>> =
                 row
                 // remove label column
                 |> Seq.skip 1
-                |> Seq.map int
+                |> Seq.map byte
 
             Seq.append acc [| (label, data) |])
         [||]
     |> Array.ofSeq
     |> Array.unzip
 
-let intRowsToBitArrays (threshold: int) (intRows: array<seq<int>>) : array<BitArray> =
-    intRows
+let byteRowsToBitArrays (threshold: byte) (byteRows: array<seq<byte>>) : array<BitArray> =
+    byteRows
     |> Array.map ((Seq.map (fun v -> v >= threshold)) >> Array.ofSeq >> BitArray)
