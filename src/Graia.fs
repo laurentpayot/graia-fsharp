@@ -84,7 +84,7 @@ let init (config: Config) : Model =
         graiaVersion = VERSION
         config = config
         inputWeights = randomWeights inputs layerNodes
-        hiddenLayersWeights = Array.init layers (fun _ -> randomWeights layerNodes layerNodes)
+        hiddenLayersWeights = Array.init (layers - 1) (fun _ -> randomWeights layerNodes layerNodes)
         outputWeights = randomWeights layerNodes outputs
         history = { loss = [||]; accuracy = [||] }
     }
