@@ -24,6 +24,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
+- use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
 - use Array2D instead of array of arrays for hidden layers??? https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/arrays#multidimensional-arrays
 - a layer weights *is a pair of bitArrays*
   - first try with naive 1,1
