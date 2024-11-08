@@ -137,6 +137,17 @@ let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     // TODO
     model
 
+let getLoss (finalBytes: array<byte>) (y: int) : float =
+    let idealBytes: array<byte> =
+        Array.init finalBytes.Length (fun i -> if i = y then 255uy else 0uy)
+
+    let maxByte = Array.max finalBytes
+    let normalizationCoef: float = if maxByte = 0uy then 1.0 else 1.0 / (float maxByte)
+
+    Array.zip finalBytes idealBytes
+    // mean absolute error
+    |> Array.sumBy (fun (a, b) -> abs (float a - float b))
+    |> (fun x -> x * normalizationCoef / (float finalBytes.Length))
 
 let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
     if epochs < 1 then
