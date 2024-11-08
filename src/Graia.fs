@@ -101,25 +101,20 @@ let private bitArrayPopCount (ba: BitArray) =
     intArray |> Array.sumBy BitOperations.PopCount
 
 
+let rowFit (model: Model) (xs: NodeValues) (y: int) : Model =
+    // TODO
+    model
+
+
 let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
     if epochs < 1 then
         model
     else
-        let epochModel =
-            Array.fold2
-                (fun model xs y ->
-                    // TODO
-                    model)
-                model
-                xsRows
-                yRows
+        let postEpochModel = Array.fold2 rowFit model xsRows yRows
 
-        let epochModel' = {
-            epochModel with
-                history.loss =
-                    // model.history with
-                    //     loss =
-                    Array.append model.history.loss [| 0.0 |]
+        let postEpochModel' = {
+            postEpochModel with
+                history.loss = Array.append model.history.loss [| 0.0 |]
         }
 
         let curr = model.history.loss.Length + 1
@@ -134,4 +129,4 @@ let rec fit (xsRows: array<NodeValues>) (yRows: array<int>) (epochs: int) (model
         printfn
             $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
-        fit xsRows yRows (epochs - 1) epochModel'
+        fit xsRows yRows (epochs - 1) postEpochModel'
