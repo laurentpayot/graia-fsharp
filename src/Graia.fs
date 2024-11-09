@@ -130,7 +130,7 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
     |> Array.sumBy (fun (a, b) -> abs (float a - float b))
     |> (fun x -> x * normalizationCoef / (float finalBytes.Length))
 
-type State = {
+type private State = {
     inputWeights: Weights
     hiddenLayersWeights: array<Weights>
     outputWeights: Weights
@@ -138,6 +138,15 @@ type State = {
     totalLoss: float
     totalCorrect: int
 }
+
+let private teachWeights
+    (isCorrect: bool)
+    (lastInputs: NodeBits)
+    (lastOutputs: NodeBits)
+    (weights: Weights)
+    : Weights =
+    // TODO
+    weights
 
 let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let inputLayerBits = layerOutputs state.inputWeights xs
@@ -158,15 +167,16 @@ let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
 
     let answer = maxByteIndex finalBytes
     let isCorrect = (answer = y) && finalBytes[answer] > 0uy
+    let teach = teachWeights isCorrect
 
     {
         state with
-
-            // TODO weight teaching!!!
-            inputWeights = state.inputWeights
-            hiddenLayersWeights = state.hiddenLayersWeights
-            outputWeights = state.outputWeights
-
+            inputWeights = state.inputWeights |> teach xs inputLayerBits
+            hiddenLayersWeights =
+                state.hiddenLayersWeights
+                |> Array.map2 (fun (i, o) w -> teach i o w) (Array.pairwise state.intermediateBits)
+            outputWeights =
+                state.outputWeights |> teach (Array.last state.intermediateBits) finalBits
             intermediateBits = intermediateBits
             totalLoss = state.totalLoss + getLoss finalBytes y
             totalCorrect =
