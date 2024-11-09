@@ -38,20 +38,35 @@ images[5]
 
 #!fsharp
 
-let model = init {
+let initialModel = init {
     inputBits = 28*28
     outputBytes = 10
-    layerNodes = 64
+    layerNodes = 128
     layers = 3
     seed = Some(123456)
 }
 
 #!fsharp
 
-let bitArrayImages = byteRowsToBitArrays 200uy images
+let matrix = initialModel.inputWeights |> weightsToMatrix
+Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
+|> Chart.withTitle "Initial Input Layer Weights"
+|> Chart.withXAxisStyle("Inputs")
+|> Chart.withYAxisStyle("Nodes")
+|> Chart.withSize(1000.,200.)
+|> Chart.withMarginSize(10.,10.,30.,10.)
 
 #!fsharp
 
-let model' = model |> fit bitArrayImages labels 10
-printfn "model"
-model'.history.Display("text/plain")
+let bitArrayImages = byteRowsToBitArrays 200uy images
+let model = initialModel |> fit bitArrayImages labels 10
+
+#!fsharp
+
+let matrix = model.inputWeights |> weightsToMatrix
+Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
+|> Chart.withTitle "Input Layer Weights"
+|> Chart.withXAxisStyle("Inputs")
+|> Chart.withYAxisStyle("Nodes")
+|> Chart.withSize(1000.,200.)
+|> Chart.withMarginSize(10.,10.,30.,10.)
