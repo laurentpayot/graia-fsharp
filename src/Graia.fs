@@ -180,6 +180,17 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
     if epochs < 1 then
         model
     else
+        // let curr = model.history.loss.Length + 1
+        // let total = model.history.loss.Length + epochs
+        // let progress = String.replicate (12 * curr / total) "█"
+        // let rest = String.replicate (12 - progress.Length) "░"
+        // let progressBar = progress + rest
+        // //! no way to update the same line https://stackoverflow.com/questions/47675136/is-there-a-way-to-update-the-same-line-in-f-interactive-using-printf
+        // // printf "\u001b[1G"
+        // // Console.SetCursorPosition(0, 0)
+        // printfn
+        //     $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
+
         let initialState: State = {
             inputWeights = model.inputWeights
             hiddenLayersWeights = model.hiddenLayersWeights
@@ -191,17 +202,6 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
         }
 
         let state = Array.fold2 rowFit initialState xsRows yRows
-        let curr = model.history.loss.Length + 1
-        let total = model.history.loss.Length + epochs
-        let progress = String.replicate (12 * curr / total) "█"
-        let rest = String.replicate (12 - progress.Length) "░"
-        let progressBar = progress + rest
-
-        //! no way to update the same line https://stackoverflow.com/questions/47675136/is-there-a-way-to-update-the-same-line-in-f-interactive-using-printf
-        // printf "\u001b[1G"
-        // Console.SetCursorPosition(0, 0)
-        printfn
-            $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
         fit xsRows yRows (epochs - 1) {
             model with

@@ -41,8 +41,8 @@ images[5]
 let model = init {
     inputBits = 28*28
     outputBytes = 10
-    layerNodes = 4
-    layers = 2
+    layerNodes = 128
+    layers = 3
     seed = Some(123456)
 }
 
@@ -53,5 +53,5 @@ let bitArrayImages = byteRowsToBitArrays 200uy images
 #!fsharp
 
 model
-|> fit bitArrayImages labels 10
+|> fit bitArrayImages labels 100
 // |> printfn "Model: %O"
