@@ -6,23 +6,7 @@ open System
 
 
 let VERSION = "0.0.1"
-
 printfn $"🌄 Graia v{VERSION}"
-
-// open System.Collections
-
-// let a: BitArray = BitArray(3)
-// let b: BitArray = BitArray(3)
-
-// a.Set(0, true)
-// b.Set(2, true)
-
-// for x in a do
-//     printfn $"%A{x}"
-
-// printfn $"a = %A{a}"
-// printfn $"b = %A{b}"
-
 
 type Config = {
     inputBits: int
