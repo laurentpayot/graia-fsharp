@@ -140,13 +140,28 @@ type private State = {
 }
 
 let private teachWeights
-    (isCorrect: bool)
+    (wasCorrect: bool)
     (inputBits: NodeBits)
     (outputBits: NodeBits)
     (weights: Weights)
     : Weights =
-    // TODO
     weights
+    |> Array.mapi (fun i (plusBits, minusBits) ->
+        let wasNodeTriggered = outputBits[i]
+        let activatedPlusBits = inputBits.And(plusBits)
+        let activatedMinusBits = inputBits.And(minusBits)
+
+        if wasCorrect then
+            if wasNodeTriggered then
+                (plusBits, minusBits.Xor(activatedMinusBits))
+            else
+                (plusBits.Xor(activatedPlusBits), minusBits)
+        else if wasNodeTriggered then
+            (plusBits.Xor(activatedPlusBits), minusBits)
+        else
+            (plusBits, minusBits.Xor(activatedMinusBits))
+
+    )
 
 let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let inputLayerBits = layerOutputs state.inputWeights xs
