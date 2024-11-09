@@ -48,6 +48,8 @@ type Model = {
     inputWeights: Weights
     hiddenLayersWeights: array<Weights>
     outputWeights: Weights
+    lastOutputs: array<byte>
+    lastIntermediateOutputs: array<NodeBits>
     history: History
 }
 
@@ -79,15 +81,17 @@ let init (config: Config) : Model =
         rnd.NextBytes bytes
         bytes |> Array.map (fun x -> x > 127uy) |> BitArray
 
-    let randomWeights (dim1: int) (dim2: int) : Weights =
-        Array.init dim2 (fun _ -> randomBitArray dim1, randomBitArray dim1)
+    let randomWeights (inputDim: int) (outputDim: int) : Weights =
+        Array.init outputDim (fun _ -> randomBitArray inputDim, randomBitArray inputDim)
 
     let model = {
         graiaVersion = VERSION
         config = config
         inputWeights = randomWeights inputBits layerNodes
         hiddenLayersWeights = Array.init (layers - 1) (fun _ -> randomWeights layerNodes layerNodes)
-        outputWeights = randomWeights layerNodes outputBytes
+        outputWeights = randomWeights layerNodes outputBits
+        lastOutputs = [||]
+        lastIntermediateOutputs = [||]
         history = { loss = [||]; accuracy = [||] }
     }
 
@@ -102,40 +106,17 @@ let private bitArrayPopCount (ba: BitArray) =
     ba.CopyTo(intArray, 0)
     intArray |> Array.sumBy BitOperations.PopCount
 
-let private layerOutputs (wts: Weights) (xs: NodeBits) : NodeBits =
+let private layerOutputs (wts: Weights) (layerInputs: NodeBits) : NodeBits =
     wts
     |> Array.map (fun (plusBits, minusBits) ->
-        let positives = bitArrayPopCount (xs.And(plusBits))
-        let negatives = bitArrayPopCount (xs.And(minusBits))
+        let positives = bitArrayPopCount (layerInputs.And(plusBits))
+        let negatives = bitArrayPopCount (layerInputs.And(minusBits))
 
         positives > negatives)
     |> BitArray
 
 let maxByteIndex (xs: array<byte>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
-
-let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
-    let postInputBits = layerOutputs model.inputWeights xs
-
-    let hiddenLayersBits =
-        model.hiddenLayersWeights
-        |> Array.fold
-            (fun layerBits (wts: Weights) ->
-                let lastLayerBits = Array.last layerBits
-                let lastLayerOutputs = layerOutputs wts lastLayerBits
-                Array.append layerBits [| lastLayerOutputs |])
-            [| postInputBits |]
-        |> Array.tail
-
-    let finalBits = layerOutputs model.outputWeights (Array.last hiddenLayersBits)
-    let finalBytes: array<byte> = Array.zeroCreate model.config.outputBytes
-    finalBits.CopyTo(finalBytes, 0)
-
-    let answer = maxByteIndex finalBytes
-    let wasGood = (answer = y) && finalBytes[answer] > 0uy
-
-    // TODO
-    model
 
 let getLoss (finalBytes: array<byte>) (y: int) : float =
     let idealBytes: array<byte> =
@@ -149,17 +130,67 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
     |> Array.sumBy (fun (a, b) -> abs (float a - float b))
     |> (fun x -> x * normalizationCoef / (float finalBytes.Length))
 
+type State = {
+    inputWeights: Weights
+    hiddenLayersWeights: array<Weights>
+    outputWeights: Weights
+    intermediateBits: array<NodeBits>
+    totalLoss: float
+    totalCorrect: int
+}
+
+let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
+    let inputLayerBits = layerOutputs state.inputWeights xs
+
+    // intermediate bits = input layer bits + hidden layers bits
+    let intermediateBits =
+        state.hiddenLayersWeights
+        |> Array.fold
+            (fun layerBits (wts: Weights) ->
+                let lastLayerBits = Array.last layerBits
+                let lastLayerOutputs = layerOutputs wts lastLayerBits
+                Array.append layerBits [| lastLayerOutputs |])
+            [| inputLayerBits |]
+
+    let finalBits = layerOutputs state.outputWeights (Array.last intermediateBits)
+    let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
+    finalBits.CopyTo(finalBytes, 0)
+
+    let answer = maxByteIndex finalBytes
+    let isCorrect = (answer = y) && finalBytes[answer] > 0uy
+
+    {
+        state with
+
+            // TODO weight teaching!!!
+            inputWeights = state.inputWeights
+            hiddenLayersWeights = state.hiddenLayersWeights
+            outputWeights = state.outputWeights
+
+            intermediateBits = intermediateBits
+            totalLoss = state.totalLoss + getLoss finalBytes y
+            totalCorrect =
+                if isCorrect then
+                    state.totalCorrect + 1
+                else
+                    state.totalCorrect
+    }
+
 let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
     if epochs < 1 then
         model
     else
-        let postEpochModel = Array.fold2 rowFit model xsRows yRows
-
-        let postEpochModel' = {
-            postEpochModel with
-                history.loss = Array.append model.history.loss [| 0.0 |]
+        let initialState: State = {
+            inputWeights = model.inputWeights
+            hiddenLayersWeights = model.hiddenLayersWeights
+            outputWeights = model.outputWeights
+            intermediateBits =
+                Array.init model.config.layers (fun _ -> BitArray(model.config.layerNodes))
+            totalLoss = 0.0
+            totalCorrect = 0
         }
 
+        let state = Array.fold2 rowFit initialState xsRows yRows
         let curr = model.history.loss.Length + 1
         let total = model.history.loss.Length + epochs
         let progress = String.replicate (12 * curr / total) "█"
@@ -172,4 +203,14 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
         printfn
             $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
-        fit xsRows yRows (epochs - 1) postEpochModel'
+        fit xsRows yRows (epochs - 1) {
+            model with
+                history = {
+                    loss =
+                        Array.append model.history.loss [| state.totalLoss / float xsRows.Length |]
+                    accuracy =
+                        Array.append model.history.accuracy [|
+                            float state.totalCorrect / float xsRows.Length
+                        |]
+                }
+        }
