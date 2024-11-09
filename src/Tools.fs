@@ -34,3 +34,10 @@ let loadMnistCsv (path: string) : array<int> * array<seq<byte>> =
 let byteRowsToBitArrays (threshold: byte) (byteRows: array<seq<byte>>) : array<BitArray> =
     byteRows
     |> Array.map ((Seq.map (fun v -> v >= threshold)) >> Array.ofSeq >> BitArray)
+
+let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<byte>> =
+    bitArrays
+    |> Array.map (fun ba ->
+        let bools: array<Boolean> = Array.zeroCreate (ba.Count)
+        ba.CopyTo(bools, 0)
+        bools |> Array.map (fun b -> if b then 1uy else 0uy))
