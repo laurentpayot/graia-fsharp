@@ -205,6 +205,9 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
 
         fit xsRows yRows (epochs - 1) {
             model with
+                inputWeights = state.inputWeights
+                hiddenLayersWeights = state.hiddenLayersWeights
+                outputWeights = state.outputWeights
                 history = {
                     loss =
                         Array.append model.history.loss [| state.totalLoss / float xsRows.Length |]
