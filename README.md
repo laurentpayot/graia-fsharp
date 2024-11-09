@@ -24,7 +24,6 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- getLoss: use Array.averageBy https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule.html#averageBy
 - use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
 - use Array2D instead of array of arrays for hidden layers??? https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/arrays#multidimensional-arrays
 - weights: try with 1,1 being 2 (AND result popcount left shift by 1) and 0,0 being -1

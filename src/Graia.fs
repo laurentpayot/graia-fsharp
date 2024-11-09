@@ -111,8 +111,7 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
 
     Array.zip finalBytes idealBytes
     // mean absolute error
-    |> Array.sumBy (fun (a, b) -> abs (float a - float b))
-    |> (fun x -> x * normalizationCoef / (float finalBytes.Length))
+    |> Array.averageBy (fun (final, ideal) -> normalizationCoef * abs (float final - float ideal))
 
 type private State = {
     inputWeights: Weights
