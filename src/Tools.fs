@@ -6,6 +6,8 @@ open System.Collections
 
 open FSharpPlus
 
+open Graia
+
 
 let loadMnistCsv (path: string) : array<int> * array<seq<byte>> =
     File.ReadAllText(path)
@@ -35,9 +37,20 @@ let byteRowsToBitArrays (threshold: byte) (byteRows: array<seq<byte>>) : array<B
     byteRows
     |> Array.map ((Seq.map (fun v -> v >= threshold)) >> Array.ofSeq >> BitArray)
 
-let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<byte>> =
-    bitArrays
-    |> Array.map (fun ba ->
-        let bools: array<Boolean> = Array.zeroCreate (ba.Count)
-        ba.CopyTo(bools, 0)
-        bools |> Array.map (fun b -> if b then 1uy else 0uy))
+let weightsToMatrix (weights: Weights) : array<array<int>> =
+    weights
+    |> Array.map (fun (plusBits, minusBits) ->
+        let plusBools: array<Boolean> = Array.zeroCreate plusBits.Count
+        plusBits.CopyTo(plusBools, 0)
+        let minusBools: array<Boolean> = Array.zeroCreate minusBits.Count
+        minusBits.CopyTo(minusBools, 0)
+
+        Array.map2
+            (fun plus minus ->
+                match plus, minus with
+                | true, true -> 0
+                | true, false -> 1
+                | false, true -> -1
+                | false, false -> 0)
+            plusBools
+            minusBools)

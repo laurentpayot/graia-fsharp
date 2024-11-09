@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="src/Tools.fs" />
     <Compile Include="src/Graia.fs" />
+    <Compile Include="src/Tools.fs" />
   </ItemGroup>
 
   <ItemGroup>
