@@ -24,8 +24,8 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- write a tool function to display array of bitArray as a matrix of 0 and 1
+- **write tests**
 - use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
 - weights: try with 1,1 being 2 (AND result popcount left shift by 1) and 0,0 being -1
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
-- use .NET 9.0 *when released*
+- use .NET 9.0 when released (no RC)
