@@ -141,8 +141,8 @@ type private State = {
 
 let private teachWeights
     (isCorrect: bool)
-    (lastInputs: NodeBits)
-    (lastOutputs: NodeBits)
+    (inputBits: NodeBits)
+    (outputBits: NodeBits)
     (weights: Weights)
     : Weights =
     // TODO
