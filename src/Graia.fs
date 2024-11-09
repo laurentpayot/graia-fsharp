@@ -106,8 +106,8 @@ let private bitArrayPopCount (ba: BitArray) =
     ba.CopyTo(intArray, 0)
     intArray |> Array.sumBy BitOperations.PopCount
 
-let private layerOutputs (wts: Weights) (layerInputs: NodeBits) : NodeBits =
-    wts
+let private layerOutputs (weights: Weights) (layerInputs: NodeBits) : NodeBits =
+    weights
     |> Array.map (fun (plusBits, minusBits) ->
         let positives = bitArrayPopCount (layerInputs.And(plusBits))
         let negatives = bitArrayPopCount (layerInputs.And(minusBits))
@@ -155,9 +155,9 @@ let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let intermediateBits =
         state.hiddenLayersWeights
         |> Array.fold
-            (fun layerBits (wts: Weights) ->
+            (fun layerBits (weights: Weights) ->
                 let lastLayerBits = Array.last layerBits
-                let lastLayerOutputs = layerOutputs wts lastLayerBits
+                let lastLayerOutputs = layerOutputs weights lastLayerBits
                 Array.append layerBits [| lastLayerOutputs |])
             [| inputLayerBits |]
 
