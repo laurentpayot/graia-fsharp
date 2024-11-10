@@ -52,3 +52,7 @@ let model = initialModel |> fit bitArrayImages labels 10
 #!fsharp
 
 showWeights "Input Layer Weights" model.inputWeights
+
+#!fsharp
+
+showIntermediateOutputs "Last intermediate outputs" model.lastIntermediateOutputs

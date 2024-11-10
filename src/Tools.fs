@@ -90,3 +90,23 @@ let showWeights (title: string) (weights: Weights) : DisplayedValue =
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
+
+let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<int>> =
+    bitArrays
+    |> Array.map (fun ba ->
+        let bools: array<Boolean> = Array.zeroCreate ba.Count
+        ba.CopyTo(bools, 0)
+        Array.map (fun bool -> if bool then 1 else 0) bools)
+
+let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : DisplayedValue =
+    let matrix = bitArraysToMatrix outputs
+
+    let chart =
+        Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Greys)
+        |> Chart.withTitle title
+        |> Chart.withXAxisStyle ("outputs")
+        |> Chart.withYAxisStyle ("Layers")
+        |> Chart.withSize (1000., 200. * float outputs.Length)
+        |> Chart.withMarginSize (80., 10., 50., 10.)
+
+    chart.Display()
