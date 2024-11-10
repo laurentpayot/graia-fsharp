@@ -86,7 +86,7 @@ let showWeights (title: string) (weights: Weights) : DisplayedValue =
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Inputs")
         |> Chart.withYAxisStyle ("Nodes")
-        |> Chart.withSize (1000., 200.)
-        |> Chart.withMarginSize (10., 10., 30., 10.)
+        |> Chart.withSize (1000., 240.)
+        |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
