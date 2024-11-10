@@ -149,15 +149,10 @@ let private teachWeights
 let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let inputLayerBits = layerOutputs state.inputWeights xs
 
-    // intermediate bits = input layer bits + hidden layers bits
+    // intermediate bits = input layer bits (included by Array.scan) + hidden layers bits
     let intermediateBits =
         state.hiddenLayersWeights
-        |> Array.fold
-            (fun layerBits (weights: Weights) ->
-                let lastLayerBits = Array.last layerBits
-                let lastLayerOutputs = layerOutputs weights lastLayerBits
-                Array.append layerBits [| lastLayerOutputs |])
-            [| inputLayerBits |]
+        |> Array.scan (fun layerBits weights -> layerOutputs weights layerBits) inputLayerBits
 
     let finalBits = layerOutputs state.outputWeights (Array.last intermediateBits)
     let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
