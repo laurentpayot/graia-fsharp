@@ -27,14 +27,8 @@ printfn $"Images: {Array.length images}"
 
 #!fsharp
 
-images[5]
-|> Seq.map (fun x -> if x >= 200uy then 1 else 0)
-|> Seq.chunkBySize 28
-|> Seq.rev
-|> Chart.Heatmap
-|> Chart.withSize(240.,200.)
-|> Chart.withTitle "MNIST digit"
-|> Chart.withMarginSize(10.,10.,30.,10.)
+showRowDigit images[5]
+showRowDigitBinarized 200uy images[5]
 
 #!fsharp
 
@@ -57,10 +51,4 @@ let model = initialModel |> fit bitArrayImages labels 10
 
 #!fsharp
 
-let matrix = model.inputWeights |> weightsToMatrix
-Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
-|> Chart.withTitle "Input Layer Weights"
-|> Chart.withXAxisStyle("Inputs")
-|> Chart.withYAxisStyle("Nodes")
-|> Chart.withSize(1000.,200.)
-|> Chart.withMarginSize(10.,10.,30.,10.)
+showWeights "Input Layer Weights" model.inputWeights
