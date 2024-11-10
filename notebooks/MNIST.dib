@@ -55,4 +55,4 @@ showWeights "Input Layer Weights" model.inputWeights
 
 #!fsharp
 
-showIntermediateOutputs "Last intermediate outputs" model.lastIntermediateOutputs
+showIntermediateOutputs "Last Intermediate Outputs" model.lastIntermediateOutputs

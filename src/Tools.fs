@@ -104,7 +104,7 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
     let chart =
         Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Greys)
         |> Chart.withTitle title
-        |> Chart.withXAxisStyle ("outputs")
+        |> Chart.withXAxisStyle ("Nodes")
         |> Chart.withYAxisStyle ("Layers")
         |> Chart.withSize (1000., 100. + 20. * float outputs.Length)
         |> Chart.withMarginSize (80., 10., 50., 10.)
