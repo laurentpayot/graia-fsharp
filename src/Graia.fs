@@ -85,10 +85,10 @@ let init (config: Config) : Model =
 
 //! waiting for native bitArray PopCount https://github.com/dotnet/runtime/issues/104299
 let private bitArrayPopCount (ba: BitArray) : int =
-    // 64 = 2^6 (BitOperations.PopCount only works with integers)
-    let uint64s: array<uint64> = Array.zeroCreate ((ba.Count >>> 6) + 1)
-    ba.CopyTo(uint64s, 0)
-    uint64s |> Array.sumBy BitOperations.PopCount
+    // 32 = 2^5 (BitOperations.PopCount only works with integers)
+    let uint32s: array<uint32> = Array.zeroCreate ((ba.Count >>> 5) + 1)
+    ba.CopyTo(uint32s, 0)
+    uint32s |> Array.sumBy BitOperations.PopCount
 
 let private layerOutputs (weights: Weights) (layerInputs: NodeBits) : NodeBits =
     weights
