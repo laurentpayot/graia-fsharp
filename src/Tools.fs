@@ -106,7 +106,7 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("outputs")
         |> Chart.withYAxisStyle ("Layers")
-        |> Chart.withSize (1000., 200. * float outputs.Length)
+        |> Chart.withSize (1000., 100. + 20. * float outputs.Length)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
