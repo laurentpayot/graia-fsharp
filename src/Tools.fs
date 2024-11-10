@@ -4,9 +4,11 @@ open System.IO
 open System
 open System.Collections
 
+open Plotly.NET
 open FSharpPlus
 
 open Graia
+open Microsoft.DotNet.Interactive
 
 
 let loadMnistCsv (path: string) : array<int> * array<seq<byte>> =
@@ -17,7 +19,7 @@ let loadMnistCsv (path: string) : array<int> * array<seq<byte>> =
     // remove header row
     |> Seq.skip 1
     |> Seq.map (String.split [ "," ])
-    |> fold
+    |> Seq.fold
         (fun acc row ->
 
             let label = Seq.head row |> int
@@ -54,3 +56,16 @@ let weightsToMatrix (weights: Weights) : array<array<int>> =
                 | false, false -> 0)
             plusBools
             minusBools)
+
+let showWeights (title: string) (weights: Weights) : DisplayedValue =
+    let matrix = weights |> weightsToMatrix
+
+    let chart =
+        Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
+        |> Chart.withTitle title
+        |> Chart.withXAxisStyle ("Inputs")
+        |> Chart.withYAxisStyle ("Nodes")
+        |> Chart.withSize (1000., 200.)
+        |> Chart.withMarginSize (10., 10., 30., 10.)
+
+    chart.Display()

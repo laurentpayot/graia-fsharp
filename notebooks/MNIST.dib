@@ -48,20 +48,7 @@ let initialModel = init {
 
 #!fsharp
 
-// TODO
-// let weightsChart (weights: Weights) : GenericChart =
-
-#!fsharp
-
-let matrix = initialModel.inputWeights |> weightsToMatrix
-let chart =
-    Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
-    |> Chart.withTitle "Initial Input Layer Weights"
-    |> Chart.withXAxisStyle("Inputs")
-    |> Chart.withYAxisStyle("Nodes")
-    |> Chart.withSize(1000.,200.)
-    |> Chart.withMarginSize(10.,10.,30.,10.)
-chart.Display()
+showWeights "Initial Input Layer Weights" initialModel.inputWeights
 
 #!fsharp
 
