@@ -133,18 +133,24 @@ let private teachWeights
     weights
     |> Array.mapi (fun i (plusBits, minusBits) ->
         let wasNodeTriggered = outputBits[i]
-        let activatedPlusBits = inputBits.And(plusBits)
-        let activatedMinusBits = inputBits.And(minusBits)
+        let plusInputsClone = inputBits.Clone() :?> BitArray
+        let minusInputsClone = inputBits.Clone() :?> BitArray
+        let activatedPlusBits = plusInputsClone.And(plusBits)
+        let activatedMinusBits = minusInputsClone.And(minusBits)
 
         if wasCorrect then
             if wasNodeTriggered then
-                (plusBits, minusBits.Xor(activatedMinusBits))
+                let minusBitsClone = minusBits.Clone() :?> BitArray
+                (plusBits, minusBitsClone.Xor(activatedMinusBits))
             else
-                (plusBits.Xor(activatedPlusBits), minusBits)
+                let plusBitsClone = plusBits.Clone() :?> BitArray
+                (plusBitsClone.Xor(activatedPlusBits), minusBits)
         else if wasNodeTriggered then
-            (plusBits.Xor(activatedPlusBits), minusBits)
+            let plusBitsClone = plusBits.Clone() :?> BitArray
+            (plusBitsClone.Xor(activatedPlusBits), minusBits)
         else
-            (plusBits, minusBits.Xor(activatedMinusBits))
+            let minusBitsClone = minusBits.Clone() :?> BitArray
+            (plusBits, minusBitsClone.Xor(activatedMinusBits))
 
     )
 
