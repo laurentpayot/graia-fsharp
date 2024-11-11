@@ -200,6 +200,7 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
             outputWeights = model.outputWeights
             intermediateBits =
                 Array.init model.config.layers (fun i ->
+                    //!DEBUG
                     // if i = 0 then
                     if true then
                         BitArray(model.config.layerNodes).Not()
