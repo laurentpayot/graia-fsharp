@@ -93,8 +93,10 @@ let private bitArrayPopCount (ba: BitArray) : int =
 let private layerOutputs (weights: Weights) (layerInputs: NodeBits) : NodeBits =
     weights
     |> Array.map (fun (plusBits, minusBits) ->
-        let positives = bitArrayPopCount (layerInputs.And(plusBits))
-        let negatives = bitArrayPopCount (layerInputs.And(minusBits))
+        let positiveInputsClone = layerInputs.Clone() :?> BitArray
+        let negativesInputsClone = layerInputs.Clone() :?> BitArray
+        let positives = bitArrayPopCount (positiveInputsClone.And(plusBits))
+        let negatives = bitArrayPopCount (negativesInputsClone.And(minusBits))
 
         positives > negatives)
     |> BitArray
@@ -148,13 +150,18 @@ let private teachWeights
 
 let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let inputLayerBits = layerOutputs state.inputWeights xs
+    printfn $"inputLayerBits = %A{inputLayerBits}"
 
     // intermediate bits = input layer bits (included by Array.scan) + hidden layers bits
     let intermediateBits =
         state.hiddenLayersWeights
         |> Array.scan (fun layerBits weights -> layerOutputs weights layerBits) inputLayerBits
 
+    printfn $"intermediateBits = %A{intermediateBits}\n"
+    printfn $"first intermediateBits = %A{intermediateBits[0]}\n"
+
     let finalBits = layerOutputs state.outputWeights (Array.last intermediateBits)
+    printfn $"finalBits = %A{finalBits}"
     let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
     finalBits.CopyTo(finalBytes, 0)
 

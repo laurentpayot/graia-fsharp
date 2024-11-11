@@ -32,19 +32,11 @@ showRowDigitBinarized 200uy images[0]
 
 #!fsharp
 
-//!DEBUG
-// let initialModel = init {
-//     inputBits = 28 * 28
-//     outputBytes = 10
-//     layerNodes = 128
-//     layers = 3
-//     seed = Some(123456)
-// }
 let initialModel = init {
-    inputBits = 2
+    inputBits = 28 * 28
     outputBytes = 10
-    layerNodes = 1
-    layers = 2
+    layerNodes = 4
+    layers = 3
     seed = Some(123456)
 }
 
@@ -54,12 +46,8 @@ showWeights "Initial Input Layer Weights" initialModel.inputWeights
 
 #!fsharp
 
-//!DEBUG
-// let bitArrayImages = byteRowsToBitArrays 200uy images
-// let model = initialModel |> fit bitArrayImages labels 10
-
-open System.Collections
-let model = initialModel |> fit [| BitArray([|true; false|]) |] [| 1 |] 1
+let bitArrayImages = byteRowsToBitArrays 200uy images
+let model = initialModel |> fit bitArrayImages[0..0] labels[0..0] 1
 
 #!fsharp
 
