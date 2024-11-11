@@ -207,13 +207,7 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
             hiddenLayersWeights = model.hiddenLayersWeights
             outputWeights = model.outputWeights
             intermediateBits =
-                Array.init model.config.layers (fun i ->
-                    //!DEBUG
-                    // if i = 0 then
-                    if true then
-                        BitArray(model.config.layerNodes).Not()
-                    else
-                        BitArray(model.config.layerNodes))
+                Array.init model.config.layers (fun _ -> BitArray(model.config.layerNodes))
             totalLoss = 0.0
             totalCorrect = 0
         }
