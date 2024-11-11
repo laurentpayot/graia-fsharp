@@ -47,7 +47,9 @@ showWeights "Initial Input Layer Weights" initialModel.inputWeights
 #!fsharp
 
 let bitArrayImages = byteRowsToBitArrays 200uy images
-let model = initialModel |> fit bitArrayImages[0..1] labels[0..1] 1
+// TODO fix no activated nodes in the last layer for N >= 7
+let N = 7
+let model = initialModel |> fit bitArrayImages[0..N] labels[0..N] 1
 
 #!fsharp
 
