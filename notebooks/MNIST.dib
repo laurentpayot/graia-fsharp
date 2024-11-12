@@ -36,24 +36,29 @@ showRowDigitBinarized 200uy images[0]
 
 #!fsharp
 
-let initialModel = init {
+let model = init {
     inputBits = 28 * 28
     outputBytes = 10
-    layerNodes = 128
+    layerNodes = 128 * 8
     layers = 3
     seed = Some(123456)
 }
 
 #!fsharp
 
-showWeights "Initial Input Layer Weights" initialModel.inputWeights
+showWeights "Initial Input Layer Weights" model.inputWeights
 
 #!fsharp
 
-let bitArrayImages = byteRowsToBitArrays 200uy images
+let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
+
+#!fsharp
+
 // TODO fix no activated nodes in the last layer for N >= 7
-let N = 7
-let model = initialModel |> fit bitArrayImages[0..N] labels[0..N] 1
+let N = 10
+model |> fit bitArrayImages[0..N] labels[0..N] 1
+
+()
 
 #!fsharp
 

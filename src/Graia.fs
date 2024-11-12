@@ -29,12 +29,12 @@ type Weights = array<BitArray * BitArray>
 type Model = {
     graiaVersion: string
     config: Config
-    inputWeights: Weights
-    hiddenLayersWeights: array<Weights>
-    outputWeights: Weights
-    lastOutputs: array<byte>
-    lastIntermediateOutputs: array<NodeBits>
-    history: History
+    mutable inputWeights: Weights
+    mutable hiddenLayersWeights: array<Weights>
+    mutable outputWeights: Weights
+    mutable lastOutputs: array<byte>
+    mutable lastIntermediateOutputs: array<NodeBits>
+    mutable history: History
 }
 
 
@@ -98,6 +98,9 @@ let private layerOutputs (weights: Weights) (layerInputs: NodeBits) : NodeBits =
         let positives = bitArrayPopCount (positiveInputsClone.And(plusBits))
         let negatives = bitArrayPopCount (negativesInputsClone.And(minusBits))
 
+        // if layerInputs.Count < 784 then
+        //     printfn $"Positives: {positives} Negatives: {negatives}"
+
         positives > negatives)
     |> BitArray
 
@@ -116,20 +119,20 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
     |> Array.averageBy (fun (final, ideal) -> normalizationCoef * abs (float final - float ideal))
 
 type private State = {
-    inputWeights: Weights
-    hiddenLayersWeights: array<Weights>
-    outputWeights: Weights
-    intermediateBits: array<NodeBits>
+    mutable inputWeights: Weights
+    mutable hiddenLayersWeights: array<Weights>
+    mutable outputWeights: Weights
+    mutable intermediateBits: array<NodeBits>
     totalLoss: float
     totalCorrect: int
 }
 
-let private teachWeights
+let private mutateWeights
     (wasCorrect: bool)
     (inputBits: NodeBits)
     (outputBits: NodeBits)
     (weights: Weights)
-    : Weights =
+    =
     weights
     |> Array.mapi (fun i (plusBits, minusBits) ->
         let wasNodeTriggered = outputBits[i]
@@ -140,45 +143,42 @@ let private teachWeights
 
         if wasCorrect then
             if wasNodeTriggered then
-                let minusBitsClone = minusBits.Clone() :?> BitArray
-                (plusBits, minusBitsClone.Xor(activatedMinusBits))
+                minusBits.Xor(activatedMinusBits)
             else
-                let plusBitsClone = plusBits.Clone() :?> BitArray
-                (plusBitsClone.Xor(activatedPlusBits), minusBits)
+                plusBits.Xor(activatedPlusBits)
         else if wasNodeTriggered then
-            let plusBitsClone = plusBits.Clone() :?> BitArray
-            (plusBitsClone.Xor(activatedPlusBits), minusBits)
+            plusBits.Xor(activatedPlusBits)
         else
-            let minusBitsClone = minusBits.Clone() :?> BitArray
-            (plusBits, minusBitsClone.Xor(activatedMinusBits))
-
-    )
+            minusBits.Xor(activatedMinusBits))
 
 let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let inputLayerBits = layerOutputs state.inputWeights xs
 
     // intermediate bits = input layer bits (included by Array.scan) + hidden layers bits
-    let intermediateBits =
+    state.intermediateBits <-
         state.hiddenLayersWeights
         |> Array.scan (fun layerBits weights -> layerOutputs weights layerBits) inputLayerBits
 
-    let finalBits = layerOutputs state.outputWeights (Array.last intermediateBits)
+    let finalBits = layerOutputs state.outputWeights (Array.last state.intermediateBits)
     let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
     finalBits.CopyTo(finalBytes, 0)
 
     let answer = maxByteIndex finalBytes
     let isCorrect = (answer = y) && finalBytes[answer] > 0uy
-    let teach = teachWeights isCorrect
+    let teach = mutateWeights isCorrect
+
+    state.inputWeights |> teach xs inputLayerBits |> ignore
+
+    state.hiddenLayersWeights
+    |> Array.map2 (fun (i, o) w -> teach i o w) (Array.pairwise state.intermediateBits)
+    |> ignore
+
+    state.outputWeights
+    |> teach (Array.last state.intermediateBits) finalBits
+    |> ignore
 
     {
         state with
-            inputWeights = state.inputWeights |> teach xs inputLayerBits
-            hiddenLayersWeights =
-                state.hiddenLayersWeights
-                |> Array.map2 (fun (i, o) w -> teach i o w) (Array.pairwise state.intermediateBits)
-            outputWeights =
-                state.outputWeights |> teach (Array.last state.intermediateBits) finalBits
-            intermediateBits = intermediateBits
             totalLoss = state.totalLoss + getLoss finalBytes y
             totalCorrect =
                 if isCorrect then
@@ -214,18 +214,17 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
 
         let state = Array.fold2 rowFit initialState xsRows yRows
 
-        fit xsRows yRows (epochs - 1) {
-            model with
-                inputWeights = state.inputWeights
-                hiddenLayersWeights = state.hiddenLayersWeights
-                outputWeights = state.outputWeights
-                lastIntermediateOutputs = state.intermediateBits
-                history = {
-                    loss =
-                        Array.append model.history.loss [| state.totalLoss / float xsRows.Length |]
-                    accuracy =
-                        Array.append model.history.accuracy [|
-                            float state.totalCorrect / float xsRows.Length
-                        |]
-                }
+        model.inputWeights <- state.inputWeights
+        model.hiddenLayersWeights <- state.hiddenLayersWeights
+        model.outputWeights <- state.outputWeights
+        model.lastIntermediateOutputs <- state.intermediateBits
+
+        model.history <- {
+            loss = Array.append model.history.loss [| state.totalLoss / float xsRows.Length |]
+            accuracy =
+                Array.append model.history.accuracy [|
+                    float state.totalCorrect / float xsRows.Length
+                |]
         }
+
+        fit xsRows yRows (epochs - 1) model
