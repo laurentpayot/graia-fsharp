@@ -39,8 +39,8 @@ showRowDigitBinarized 200uy images[0]
 let model = init {
     inputBits = 28 * 28
     outputBytes = 10
-    layerNodes = 2
-    layers = 2
+    layerNodes = 128
+    layers = 3
     seed = Some(123456)
 }
 
