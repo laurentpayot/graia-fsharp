@@ -19,6 +19,8 @@ type Config = {
 type History = {
     loss: array<float>
     accuracy: array<float>
+    lastEpochTotalLoss: float
+    lastEpochTotalCorrect: int
 }
 
 type NodeBits = BitArray
@@ -76,7 +78,12 @@ let init (config: Config) : Model =
         outputWeights = randomWeights layerNodes outputBits
         lastOutputs = [||]
         lastIntermediateOutputs = [||]
-        history = { loss = [||]; accuracy = [||] }
+        history = {
+            loss = [||]
+            accuracy = [||]
+            lastEpochTotalLoss = 0.0
+            lastEpochTotalCorrect = 0
+        }
     }
 
     printfn $"🌄 Graia model with {parametersNb} parameters ready."
@@ -118,15 +125,6 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
     // mean absolute error
     |> Array.averageBy (fun (final, ideal) -> normalizationCoef * abs (float final - float ideal))
 
-type private State = {
-    mutable inputWeights: Weights
-    mutable hiddenLayersWeights: array<Weights>
-    mutable outputWeights: Weights
-    mutable intermediateBits: array<NodeBits>
-    totalLoss: float
-    totalCorrect: int
-}
-
 let private mutateWeights
     (wasCorrect: bool)
     (inputBits: NodeBits)
@@ -151,15 +149,17 @@ let private mutateWeights
         else
             minusBits.Xor(activatedMinusBits))
 
-let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
-    let inputLayerBits = layerOutputs state.inputWeights xs
+let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
+    let inputLayerBits = layerOutputs model.inputWeights xs
 
-    // intermediate bits = input layer bits (included by Array.scan) + hidden layers bits
-    state.intermediateBits <-
-        state.hiddenLayersWeights
+    // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
+    model.lastIntermediateOutputs <-
+        model.hiddenLayersWeights
         |> Array.scan (fun layerBits weights -> layerOutputs weights layerBits) inputLayerBits
 
-    let finalBits = layerOutputs state.outputWeights (Array.last state.intermediateBits)
+    let finalBits =
+        layerOutputs model.outputWeights (Array.last model.lastIntermediateOutputs)
+
     let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
     finalBits.CopyTo(finalBytes, 0)
 
@@ -167,25 +167,27 @@ let private rowFit (state: State) (xs: NodeBits) (y: int) : State =
     let isCorrect = (answer = y) && finalBytes[answer] > 0uy
     let teach = mutateWeights isCorrect
 
-    state.inputWeights |> teach xs inputLayerBits |> ignore
+    model.inputWeights |> teach xs inputLayerBits |> ignore
 
-    state.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teach i o w) (Array.pairwise state.intermediateBits)
+    model.hiddenLayersWeights
+    |> Array.map2 (fun (i, o) w -> teach i o w) (Array.pairwise model.lastIntermediateOutputs)
     |> ignore
 
-    state.outputWeights
-    |> teach (Array.last state.intermediateBits) finalBits
+    model.outputWeights
+    |> teach (Array.last model.lastIntermediateOutputs) finalBits
     |> ignore
 
-    {
-        state with
-            totalLoss = state.totalLoss + getLoss finalBytes y
-            totalCorrect =
+    model.history <- {
+        model.history with
+            lastEpochTotalLoss = model.history.lastEpochTotalLoss + getLoss finalBytes y
+            lastEpochTotalCorrect =
                 if isCorrect then
-                    state.totalCorrect + 1
+                    model.history.lastEpochTotalCorrect + 1
                 else
-                    state.totalCorrect
+                    model.history.lastEpochTotalCorrect
     }
+
+    model
 
 let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
     if epochs < 1 then
@@ -202,29 +204,7 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
         // printfn
         //     $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
-        let initialState: State = {
-            inputWeights = model.inputWeights
-            hiddenLayersWeights = model.hiddenLayersWeights
-            outputWeights = model.outputWeights
-            intermediateBits =
-                Array.init model.config.layers (fun _ -> BitArray(model.config.layerNodes))
-            totalLoss = 0.0
-            totalCorrect = 0
-        }
 
-        let state = Array.fold2 rowFit initialState xsRows yRows
-
-        model.inputWeights <- state.inputWeights
-        model.hiddenLayersWeights <- state.hiddenLayersWeights
-        model.outputWeights <- state.outputWeights
-        model.lastIntermediateOutputs <- state.intermediateBits
-
-        model.history <- {
-            loss = Array.append model.history.loss [| state.totalLoss / float xsRows.Length |]
-            accuracy =
-                Array.append model.history.accuracy [|
-                    float state.totalCorrect / float xsRows.Length
-                |]
-        }
+        Array.fold2 rowFit model xsRows yRows |> ignore
 
         fit xsRows yRows (epochs - 1) model

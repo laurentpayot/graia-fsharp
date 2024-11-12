@@ -55,10 +55,10 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 #!fsharp
 
 // TODO fix no activated nodes in the last layer for N >= 7
-let N = 10
+let N = 1
 model |> fit bitArrayImages[0..N] labels[0..N] 1
 
-()
+model.history
 
 #!fsharp
 
