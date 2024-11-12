@@ -102,9 +102,6 @@ let private layerOutputs (weights: Weights) (layerInputs: NodeBits) : NodeBits =
         let positives = bitArrayPopCount (positiveInputsClone.And(plusBits))
         let negatives = bitArrayPopCount (negativesInputsClone.And(minusBits))
 
-        // if layerInputs.Count < 784 then
-        //     printfn $"Positives: {positives} Negatives: {negatives}"
-
         positives > negatives)
     |> BitArray
 
