@@ -55,10 +55,10 @@ let weightsToMatrix (weights: Weights) : array<array<int>> =
         Array.map2
             (fun plus minus ->
                 match plus, minus with
-                | true, true -> 0
+                | true, true -> 2
                 | true, false -> 1
-                | false, true -> -1
-                | false, false -> 0)
+                | false, false -> 0
+                | false, true -> -1)
             plusBools
             minusBools)
 

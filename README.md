@@ -24,8 +24,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- fix no activated nodes in the last layer for N >= 3
-    - weights: try with 1,1 being 2 (AND result popcount left shift by 1) and 0,0 being -1
+- weights: try with 1,1 being 2
 - **write tests**
 - use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
