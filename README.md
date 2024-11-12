@@ -24,7 +24,8 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- weights: try with 1,1 being 2
+- 1,1 weights being 2:
+  - try random last intermediate outputs at init?
 - **write tests**
 - use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
