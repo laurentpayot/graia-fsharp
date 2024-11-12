@@ -112,17 +112,19 @@ let maxByteIndex (xs: array<byte>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
 let getLoss (finalBytes: array<byte>) (y: int) : float =
-    let idealBytes: array<byte> =
-        Array.init finalBytes.Length (fun i -> if i = y then 255uy else 0uy)
+    let idealNorm: array<float> =
+        Array.init finalBytes.Length (fun i -> if i = y then 1. else 0.)
 
     let maxByte = Array.max finalBytes
 
-    let normalizationCoef: float =
-        if maxByte = 0uy then 1.0 else (1.0 / (float maxByte))
-
-    Array.zip finalBytes idealBytes
-    // mean absolute error
-    |> Array.averageBy (fun (final, ideal) -> normalizationCoef * abs (float final - float ideal))
+    if maxByte = 0uy then
+        1.0
+    else
+        finalBytes
+        |> Array.map (fun x -> float x / float maxByte)
+        |> Array.zip idealNorm
+        // mean absolute error
+        |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 let private mutateWeights
     (wasCorrect: bool)
@@ -201,7 +203,8 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
         // printfn
         //     $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
-
+        model.lastEpochTotalLoss <- 0.0
+        model.lastEpochTotalCorrect <- 0
         Array.fold2 rowFit model xsRows yRows |> ignore
 
         model.history <- {
