@@ -2,6 +2,10 @@
 
 {"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"},{"aliases":[],"languageName":"fsharp","name":"fsharp"}]}}
 
+#!markdown
+
+# Graia MNIST digits example
+
 #!fsharp
 
 #r "nuget: Plotly.NET"
