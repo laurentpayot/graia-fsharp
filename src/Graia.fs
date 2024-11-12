@@ -19,8 +19,6 @@ type Config = {
 type History = {
     loss: array<float>
     accuracy: array<float>
-    lastEpochTotalLoss: float
-    lastEpochTotalCorrect: int
 }
 
 type NodeBits = BitArray
@@ -36,6 +34,8 @@ type Model = {
     mutable outputWeights: Weights
     mutable lastOutputs: array<byte>
     mutable lastIntermediateOutputs: array<NodeBits>
+    mutable lastEpochTotalLoss: float
+    mutable lastEpochTotalCorrect: int
     mutable history: History
 }
 
@@ -78,12 +78,9 @@ let init (config: Config) : Model =
         outputWeights = randomWeights layerNodes outputBits
         lastOutputs = [||]
         lastIntermediateOutputs = [||]
-        history = {
-            loss = [||]
-            accuracy = [||]
-            lastEpochTotalLoss = 0.0
-            lastEpochTotalCorrect = 0
-        }
+        lastEpochTotalLoss = 0.0
+        lastEpochTotalCorrect = 0
+        history = { loss = [||]; accuracy = [||] }
     }
 
     printfn $"🌄 Graia model with {parametersNb} parameters ready."
@@ -119,7 +116,9 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
         Array.init finalBytes.Length (fun i -> if i = y then 255uy else 0uy)
 
     let maxByte = Array.max finalBytes
-    let normalizationCoef: float = if maxByte = 0uy then 1.0 else 1.0 / (float maxByte)
+
+    let normalizationCoef: float =
+        if maxByte = 0uy then 1.0 else (1.0 / (float maxByte))
 
     Array.zip finalBytes idealBytes
     // mean absolute error
@@ -177,15 +176,13 @@ let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     |> teach (Array.last model.lastIntermediateOutputs) finalBits
     |> ignore
 
-    model.history <- {
-        model.history with
-            lastEpochTotalLoss = model.history.lastEpochTotalLoss + getLoss finalBytes y
-            lastEpochTotalCorrect =
-                if isCorrect then
-                    model.history.lastEpochTotalCorrect + 1
-                else
-                    model.history.lastEpochTotalCorrect
-    }
+    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + getLoss finalBytes y
+
+    model.lastEpochTotalCorrect <-
+        if isCorrect then
+            model.lastEpochTotalCorrect + 1
+        else
+            model.lastEpochTotalCorrect
 
     model
 
@@ -206,5 +203,14 @@ let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: 
 
 
         Array.fold2 rowFit model xsRows yRows |> ignore
+
+        model.history <- {
+            loss =
+                Array.append model.history.loss [| model.lastEpochTotalLoss / float xsRows.Length |]
+            accuracy =
+                Array.append model.history.accuracy [|
+                    (float model.lastEpochTotalCorrect) / float xsRows.Length
+                |]
+        }
 
         fit xsRows yRows (epochs - 1) model
