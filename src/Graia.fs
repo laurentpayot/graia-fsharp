@@ -214,6 +214,7 @@ let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
 
     let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
     finalBits.CopyTo(finalBytes, 0)
+    model.lastOutputs <- finalBytes
 
     let answer = maxByteIndex finalBytes
     let isCorrect = (answer = y) && finalBytes[answer] > 0uy
