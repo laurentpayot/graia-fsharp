@@ -3,6 +3,7 @@
 open System.Collections
 open System.Numerics
 open System
+open System.Reflection.Metadata.Ecma335
 
 
 let VERSION = "0.0.1"
@@ -22,16 +23,17 @@ type History = {
 }
 
 type NodeBits = BitArray
-
 // excitatory bits * inhibitory bits
-type Weights = array<BitArray * BitArray>
+type NodeWeights = BitArray * BitArray
+
+type LayerWeights = array<NodeWeights>
 
 type Model = {
     graiaVersion: string
     config: Config
-    mutable inputWeights: Weights
-    mutable hiddenLayersWeights: array<Weights>
-    mutable outputWeights: Weights
+    mutable inputLayerWeights: LayerWeights
+    mutable hiddenLayersWeights: array<LayerWeights>
+    mutable outputLayerWeights: LayerWeights
     mutable lastOutputs: array<byte>
     mutable lastIntermediateOutputs: array<NodeBits>
     mutable lastEpochTotalLoss: float
@@ -67,15 +69,16 @@ let init (config: Config) : Model =
         rnd.NextBytes bytes
         bytes |> Array.map (fun x -> x > 127uy) |> BitArray
 
-    let randomWeights (inputDim: int) (outputDim: int) : Weights =
+    let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
         Array.init outputDim (fun _ -> randomBitArray inputDim, randomBitArray inputDim)
 
     let model = {
         graiaVersion = VERSION
         config = config
-        inputWeights = randomWeights inputBits layerNodes
-        hiddenLayersWeights = Array.init (layers - 1) (fun _ -> randomWeights layerNodes layerNodes)
-        outputWeights = randomWeights layerNodes outputBits
+        inputLayerWeights = randomLayerWeights inputBits layerNodes
+        hiddenLayersWeights =
+            Array.init (layers - 1) (fun _ -> randomLayerWeights layerNodes layerNodes)
+        outputLayerWeights = randomLayerWeights layerNodes outputBits
         lastOutputs = [||]
         lastIntermediateOutputs = [||]
         lastEpochTotalLoss = 0.0
@@ -94,26 +97,46 @@ let private bitArrayPopCount (ba: BitArray) : int =
     ba.CopyTo(uint32s, 0)
     uint32s |> Array.sumBy BitOperations.PopCount
 
-let private layerOutputs (weights: Weights) (inputBits: NodeBits) : NodeBits =
-    weights
-    |> Array.map (fun (plusBits, minusBits) ->
-        let activatedPlusBits = (plusBits.Clone() :?> BitArray).And(inputBits)
-        let activatedMinusBits = (minusBits.Clone() :?> BitArray).And(inputBits)
+type ActivatedWeightBits = {
+    plus: BitArray
+    minus: BitArray
+    both: BitArray
+    plusOnly: BitArray
+    minusOnly: BitArray
+    noBits: BitArray option
+}
 
-        let activatedBothBits =
-            (activatedPlusBits.Clone() :?> BitArray).And(activatedMinusBits)
+let getActivatedWeightBits
+    (getActivatedNoBits: Boolean)
+    (inputBits: NodeBits)
+    ((plusWeightBits, minusWeightBits): NodeWeights)
+    : ActivatedWeightBits =
+    let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
+    let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
+    let both = (plus.Clone() :?> BitArray).And(minus)
+    let plusOnly = (plus.Clone() :?> BitArray).Xor(both)
+    let minusOnly = (minus.Clone() :?> BitArray).Xor(both)
 
-        let activatedPlusBitsOnly =
-            (activatedPlusBits.Clone() :?> BitArray).Xor(activatedBothBits)
+    {
+        plus = plus
+        minus = minus
+        both = both
+        plusOnly = plusOnly
+        minusOnly = minusOnly
+        noBits =
+            if getActivatedNoBits then
+                Some((plus.Clone() :?> BitArray).Or(minus).Not())
+            else
+                None
+    }
 
-        let activatedMinusBitsOnly =
-            (activatedMinusBits.Clone() :?> BitArray).Xor(activatedBothBits)
+let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
+    layerWeights
+    |> Array.map (fun nodeWeights ->
+        let activatedBits = getActivatedWeightBits false inputBits nodeWeights
 
-
-        (((bitArrayPopCount activatedBothBits) <<< 1)
-         + bitArrayPopCount activatedPlusBitsOnly) > bitArrayPopCount activatedMinusBitsOnly
-
-    )
+        (((bitArrayPopCount activatedBits.both) <<< 1)
+         + bitArrayPopCount activatedBits.plusOnly) > bitArrayPopCount activatedBits.minusOnly)
     |> BitArray
 
 let maxByteIndex (xs: array<byte>) : int =
@@ -134,15 +157,30 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
         // mean absolute error
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
-let private mutateWeights
+// effectful function
+let exciteActivatedNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+    // TODO
+    ()
+
+// effectful function
+let inhibitActivatedNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+    // TODO
+    ()
+
+let mutateLayerWeights
     (wasCorrect: bool)
     (inputBits: NodeBits)
     (outputBits: NodeBits)
-    (weights: Weights)
+    (layerWeights: LayerWeights)
     =
-    weights
-    |> Array.mapi (fun i (plusBits, minusBits) ->
+    layerWeights
+    |> Array.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
+
+
+        // TODO !!!!!!!!!!!!!!!!!!!
+
+
         let activatedPlusBits = (plusBits.Clone() :?> BitArray).And(inputBits)
         let activatedMinusBits = (minusBits.Clone() :?> BitArray).And(inputBits)
 
@@ -198,31 +236,33 @@ let private mutateWeights
     )
 
 let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
-    let inputLayerBits = layerOutputs model.inputWeights xs
+    let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
     model.lastIntermediateOutputs <-
         model.hiddenLayersWeights
-        |> Array.scan (fun layerBits weights -> layerOutputs weights layerBits) inputLayerBits
+        |> Array.scan
+            (fun layerBits layerWeights -> layerOutputs layerWeights layerBits)
+            inputLayerBits
 
     let finalBits =
-        layerOutputs model.outputWeights (Array.last model.lastIntermediateOutputs)
+        layerOutputs model.outputLayerWeights (Array.last model.lastIntermediateOutputs)
 
     let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
     finalBits.CopyTo(finalBytes, 0)
 
     let answer = maxByteIndex finalBytes
     let isCorrect = (answer = y) && finalBytes[answer] > 0uy
-    let teach = mutateWeights isCorrect
+    let teachLayer = mutateLayerWeights isCorrect
 
-    model.inputWeights |> teach xs inputLayerBits |> ignore
+    model.inputLayerWeights |> teachLayer xs inputLayerBits |> ignore
 
     model.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teach i o w) (Array.pairwise model.lastIntermediateOutputs)
+    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise model.lastIntermediateOutputs)
     |> ignore
 
-    model.outputWeights
-    |> teach (Array.last model.lastIntermediateOutputs) finalBits
+    model.outputLayerWeights
+    |> teachLayer (Array.last model.lastIntermediateOutputs) finalBits
     |> ignore
 
     model.lastEpochTotalLoss <- model.lastEpochTotalLoss + getLoss finalBytes y
