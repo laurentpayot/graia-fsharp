@@ -109,3 +109,14 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
+
+let showOutputs (title: string) (outputs: array<byte>) : DisplayedValue =
+    let chart =
+        Chart.Column([ 0 .. outputs.Length - 1 ], outputs)
+        |> Chart.withTitle title
+        |> Chart.withXAxisStyle ("Digits")
+        |> Chart.withYAxisStyle ("Values")
+        |> Chart.withSize (1000., 200.)
+        |> Chart.withMarginSize (80., 10., 50., 10.)
+
+    chart.Display()
