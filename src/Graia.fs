@@ -98,8 +98,8 @@ let private bitArrayPopCount (ba: BitArray) : int =
     uint32s |> Array.sumBy BitOperations.PopCount
 
 type ActiveWeightBits = {
-    plus: BitArray
-    minus: BitArray
+    // plus: BitArray
+    // minus: BitArray
     both: BitArray
     plusOnly: BitArray
     minusOnly: BitArray
@@ -118,8 +118,8 @@ let getActiveWeightBits
     let minusOnly = (minus.Clone() :?> BitArray).Xor(both)
 
     {
-        plus = plus
-        minus = minus
+        // plus = plus
+        // minus = minus
         both = both
         plusOnly = plusOnly
         minusOnly = minusOnly
@@ -160,22 +160,26 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
 // effectful function
 let exciteActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let active = getActiveWeightBits true inputBits nodeWeights
+    let (plusWeightBits, minusWeightBits) = nodeWeights
+
     // remove single active minus bits
-    active.minus.Xor(active.minusOnly) |> ignore
+    minusWeightBits.Xor(active.minusOnly) |> ignore
     // turn active plus only bits into both bits
-    active.minus.Or(active.plusOnly) |> ignore
+    minusWeightBits.Or(active.plusOnly) |> ignore
     // turn active no bits into plus only bits
-    active.plus.Or(active.noBits.Value) |> ignore
+    plusWeightBits.Or(active.noBits.Value) |> ignore
 
 // effectful function
 let inhibitActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let active = getActiveWeightBits true inputBits nodeWeights
+    let (plusWeightBits, minusWeightBits) = nodeWeights
+
     // remove single active plus bits
-    active.plus.Xor(active.plusOnly) |> ignore
+    plusWeightBits.Xor(active.plusOnly) |> ignore
     // turn active both bits into plus only bits
-    active.minus.Xor(active.both) |> ignore
+    minusWeightBits.Xor(active.both) |> ignore
     // turn active no bits into minus only bits
-    active.minus.Or(active.noBits.Value) |> ignore
+    minusWeightBits.Or(active.noBits.Value) |> ignore
 
 let mutateLayerWeights
     (wasCorrect: bool)
