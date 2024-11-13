@@ -11,29 +11,28 @@ open Graia
 open Microsoft.DotNet.Interactive
 
 
-type ByteRow = seq<byte>
+type ByteRow = array<byte>
 
 let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     File.ReadAllText(path)
-    |> String.split [ "\n" ]
+    |> (String.split [ "\n" ] >> Array.ofSeq)
     // stop at the last empty line
-    |> Seq.takeWhile (not << String.IsNullOrWhiteSpace)
+    |> Array.takeWhile (not << String.IsNullOrWhiteSpace)
     // remove header row
-    |> Seq.skip 1
-    |> Seq.map (String.split [ "," ])
-    |> Seq.fold
+    |> Array.skip 1
+    |> Array.map (String.split [ "," ] >> Array.ofSeq)
+    |> Array.fold
         (fun acc row ->
-            let label = Seq.head row |> int
+            let label = Array.head row |> int
 
             let data =
                 row
                 // remove label column
-                |> Seq.skip 1
-                |> Seq.map byte
+                |> Array.skip 1
+                |> Array.map byte
 
-            Seq.append acc [| (label, data) |])
+            Array.append acc [| (label, data) |])
         [||]
-    |> Array.ofSeq
     |> Array.unzip
 
 let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =
