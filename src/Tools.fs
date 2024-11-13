@@ -104,7 +104,7 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
     let chart =
         Chart.Heatmap(
             zData = matrix,
-            ColorScale = StyleParam.Colorscale.Greys,
+            ColorScale = StyleParam.Colorscale.Blackbody,
             ReverseYAxis = true
         // rowNames = Array.map string [| 0 .. outputs.Length - 1 |]
         )
