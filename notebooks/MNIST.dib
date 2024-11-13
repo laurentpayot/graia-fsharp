@@ -26,8 +26,8 @@ open Tools
 
 #!fsharp
 
-let labels, images = loadMnistCsv "datasets/mnist_train.csv"
-// let labels, images = loadMnistCsv "datasets/mnist_train_head.csv"
+// let labels, images = loadMnistCsv "datasets/mnist_train.csv"
+let labels, images = loadMnistCsv "datasets/mnist_train_head.csv"
 printfn $"Images: {Array.length images}"
 
 #!fsharp
@@ -55,7 +55,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 60000
+let N = 1
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
 
 model.history.Display("text/plain")
@@ -76,6 +76,10 @@ showLayerWeights "Output layer weights" model.outputLayerWeights
 #!fsharp
 
 showIntermediateOutputs "Last Intermediate Outputs" model.lastIntermediateOutputs
+
+#!fsharp
+
+showOutputs "Last Digit Choice" model.lastOutputs
 
 #!fsharp
 

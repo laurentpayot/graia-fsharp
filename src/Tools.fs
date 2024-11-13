@@ -111,12 +111,15 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
     chart.Display()
 
 let showOutputs (title: string) (outputs: array<byte>) : DisplayedValue =
+    let intOutputs = Array.map int outputs
+    let strLabels = Array.map string [| 0 .. outputs.Length - 1 |]
+
     let chart =
-        Chart.Column([ 0 .. outputs.Length - 1 ], outputs)
+        Chart.Column(values = intOutputs, Keys = strLabels)
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Digits")
         |> Chart.withYAxisStyle ("Values")
-        |> Chart.withSize (1000., 200.)
+        |> Chart.withSize (1000., 250.)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
