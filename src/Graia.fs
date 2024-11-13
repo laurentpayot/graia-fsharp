@@ -174,10 +174,11 @@ let inhibitActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : 
 
     // remove single active plus bits
     plusWeightBits.Xor(active.plusOnly) |> ignore
-    // turn active both bits into plus only bits
-    minusWeightBits.Xor(active.both) |> ignore
+    // order is important!
     // turn active no bits into minus only bits
     minusWeightBits.Or(active.noBits.Value) |> ignore
+    // turn active both bits into plus only bits
+    minusWeightBits.Xor(active.both) |> ignore
 
 let mutateLayerWeights
     (wasCorrect: bool)

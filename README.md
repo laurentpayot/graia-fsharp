@@ -25,7 +25,6 @@ To run Graia along with a F# notebook you will need:
 ## TODO
 
 - 1,1 weights being 2:
-  - fix inhibitActiveNodeWeights
   - write tests for excitation/inhibition: weights (00,01,10,11) with inputs (0,0,0,0) and (1,1,1,1)
   - try random last intermediate outputs at init?
 - **write tests**
