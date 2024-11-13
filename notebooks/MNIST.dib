@@ -8,9 +8,9 @@
 
 #!fsharp
 
-// #r "nuget: Plotly.NET"
-// #r "nuget: Plotly.NET.Interactive"
-// #r "nuget: FSharpPlus"
+#r "nuget: Plotly.NET"
+#r "nuget: Plotly.NET.Interactive"
+#r "nuget: FSharpPlus"
 
 open Plotly.NET
 open FSharpPlus
@@ -55,7 +55,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1
+let N = 100
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
 
 model.history.Display("text/plain")
