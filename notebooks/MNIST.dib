@@ -8,9 +8,9 @@
 
 #!fsharp
 
-#r "nuget: Plotly.NET"
-#r "nuget: Plotly.NET.Interactive"
-#r "nuget: FSharpPlus"
+// #r "nuget: Plotly.NET"
+// #r "nuget: Plotly.NET.Interactive"
+// #r "nuget: FSharpPlus"
 
 open Plotly.NET
 open FSharpPlus
@@ -55,7 +55,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1000
+let N = 1
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
 
 model.history.Display("text/plain")
@@ -67,3 +67,21 @@ showLayerWeights "Input Layer Weights" model.inputLayerWeights
 #!fsharp
 
 showIntermediateOutputs "Last Intermediate Outputs" model.lastIntermediateOutputs
+
+#!fsharp
+
+open System.Collections
+
+let minusBits = BitArray([| true; false; false; true |])
+let plusBits  = BitArray([| true; true; false; false |])
+let inputBits1 = BitArray(4).Not()
+let inputBits0 = BitArray(4)
+
+// let active = getActiveWeightBits true inputBits0 (plusBits, minusBits)
+
+// exciteActiveNodeWeights inputBits1 (plusBits, minusBits)
+inhibitActiveNodeWeights inputBits1 (plusBits, minusBits)
+printfn "%A" minusBits
+printfn "%A" plusBits
+
+// printfn "\n%A" active

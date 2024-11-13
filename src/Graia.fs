@@ -123,7 +123,7 @@ let getActiveWeightBits
         minusOnly = minusOnly
         noBits =
             if getActiveNoBits then
-                Some((plus.Clone() :?> BitArray).Or(minus).Not())
+                Some((inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
             else
                 None
     }
