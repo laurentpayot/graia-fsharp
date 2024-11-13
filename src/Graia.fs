@@ -78,7 +78,7 @@ let init (config: Config) : Model =
             Array.init (layers - 1) (fun _ -> randomLayerWeights layerNodes layerNodes)
         outputLayerWeights = randomLayerWeights layerNodes outputBits
         lastOutputs = [||]
-        lastIntermediateOutputs = [||]
+        lastIntermediateOutputs = Array.init layers (fun _ -> BitArray(layerNodes))
         lastEpochTotalLoss = 0.0
         lastEpochTotalCorrect = 0
         history = { loss = [||]; accuracy = [||] }
