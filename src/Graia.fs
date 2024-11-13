@@ -3,8 +3,6 @@
 open System.Collections
 open System.Numerics
 open System
-open System.Reflection.Metadata.Ecma335
-
 
 let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
