@@ -14,12 +14,10 @@ open Microsoft.DotNet.Interactive
 type ByteRow = array<byte>
 
 let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
-    File.ReadAllText(path)
-    |> (String.split [ "\n" ] >> Array.ofSeq)
-    // stop at the last empty line
-    |> Array.takeWhile (not << String.IsNullOrWhiteSpace)
+    File.ReadAllLines(path)
     // remove header row
     |> Array.skip 1
+    // turning seq into array for performance reasons https://theburningmonk.com/2012/06/f-speed-test-iter-and-map-operations-with-array-vs-list/
     |> Array.map (String.split [ "," ] >> Array.ofSeq)
     |> Array.fold
         (fun acc row ->
