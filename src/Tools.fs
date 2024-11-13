@@ -85,6 +85,7 @@ let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedVal
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Inputs")
         |> Chart.withYAxisStyle ("Nodes")
+        |> Chart.withColorBarStyle (TitleText = "Weights")
         |> Chart.withSize (1000., 240.)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
@@ -101,10 +102,16 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
     let matrix = bitArraysToMatrix outputs
 
     let chart =
-        Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Greys)
+        Chart.Heatmap(
+            zData = matrix,
+            ColorScale = StyleParam.Colorscale.Greys,
+            ReverseYAxis = true
+        // rowNames = Array.map string [| 0 .. outputs.Length - 1 |]
+        )
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Nodes")
         |> Chart.withYAxisStyle ("Layers")
+        |> Chart.withColorBarStyle (TitleText = "Outputs")
         |> Chart.withSize (1000., 100. + 20. * float outputs.Length)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
