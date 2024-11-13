@@ -23,7 +23,6 @@ let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     |> Seq.map (String.split [ "," ])
     |> Seq.fold
         (fun acc row ->
-
             let label = Seq.head row |> int
 
             let data =
@@ -44,8 +43,8 @@ let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : 
 let byteRowsToBitArrays (byteRows: array<ByteRow>) : array<BitArray> =
     byteRows |> Array.map (Array.ofSeq >> BitArray)
 
-let weightsToMatrix (weights: Weights) : array<array<int>> =
-    weights
+let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
+    layerWeights
     |> Array.map (fun (plusBits, minusBits) ->
         let plusBools: array<Boolean> = Array.zeroCreate plusBits.Count
         plusBits.CopyTo(plusBools, 0)
@@ -81,8 +80,8 @@ let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
 
 let showRowDigit (row: ByteRow) : DisplayedValue = showRowDigitBinarized 0uy row
 
-let showWeights (title: string) (weights: Weights) : DisplayedValue =
-    let matrix = weights |> weightsToMatrix
+let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedValue =
+    let matrix = layerWeights |> layerWeightsToMatrix
 
     let chart =
         Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
