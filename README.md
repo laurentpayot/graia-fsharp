@@ -24,6 +24,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
+- fixed scale charts
 - **tests**
   - excitation/inhibition: weights (00,01,10,11) with inputs (0,0,0,0) and (1,1,1,1)
 - use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
