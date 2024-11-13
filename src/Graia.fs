@@ -97,7 +97,7 @@ let private bitArrayPopCount (ba: BitArray) : int =
     ba.CopyTo(uint32s, 0)
     uint32s |> Array.sumBy BitOperations.PopCount
 
-type ActivatedWeightBits = {
+type ActiveWeightBits = {
     plus: BitArray
     minus: BitArray
     both: BitArray
@@ -106,11 +106,11 @@ type ActivatedWeightBits = {
     noBits: BitArray option
 }
 
-let getActivatedWeightBits
-    (getActivatedNoBits: Boolean)
+let getActiveWeightBits
+    (getActiveNoBits: Boolean)
     (inputBits: NodeBits)
     ((plusWeightBits, minusWeightBits): NodeWeights)
-    : ActivatedWeightBits =
+    : ActiveWeightBits =
     let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
     let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
     let both = (plus.Clone() :?> BitArray).And(minus)
@@ -124,7 +124,7 @@ let getActivatedWeightBits
         plusOnly = plusOnly
         minusOnly = minusOnly
         noBits =
-            if getActivatedNoBits then
+            if getActiveNoBits then
                 Some((plus.Clone() :?> BitArray).Or(minus).Not())
             else
                 None
@@ -133,10 +133,10 @@ let getActivatedWeightBits
 let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
     |> Array.map (fun nodeWeights ->
-        let activatedBits = getActivatedWeightBits false inputBits nodeWeights
+        let activeBits = getActiveWeightBits false inputBits nodeWeights
 
-        (((bitArrayPopCount activatedBits.both) <<< 1)
-         + bitArrayPopCount activatedBits.plusOnly) > bitArrayPopCount activatedBits.minusOnly)
+        (((bitArrayPopCount activeBits.both) <<< 1)
+         + bitArrayPopCount activeBits.plusOnly) > bitArrayPopCount activeBits.minusOnly)
     |> BitArray
 
 let maxByteIndex (xs: array<byte>) : int =
@@ -158,14 +158,24 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 // effectful function
-let exciteActivatedNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
-    // TODO
-    ()
+let exciteActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+    let active = getActiveWeightBits true inputBits nodeWeights
+    // remove single active minus bits
+    active.minus.Xor(active.minusOnly) |> ignore
+    // turn active plus only bits into both bits
+    active.minus.Or(active.plusOnly) |> ignore
+    // turn active no bits into plus only bits
+    active.plus.Or(active.noBits.Value) |> ignore
 
 // effectful function
-let inhibitActivatedNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
-    // TODO
-    ()
+let inhibitActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+    let active = getActiveWeightBits true inputBits nodeWeights
+    // remove single active plus bits
+    active.plus.Xor(active.plusOnly) |> ignore
+    // turn active both bits into plus only bits
+    active.minus.Xor(active.both) |> ignore
+    // turn active no bits into minus only bits
+    active.minus.Or(active.noBits.Value) |> ignore
 
 let mutateLayerWeights
     (wasCorrect: bool)
@@ -177,63 +187,15 @@ let mutateLayerWeights
     |> Array.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
 
-
-        // TODO !!!!!!!!!!!!!!!!!!!
-
-
-        let activatedPlusBits = (plusBits.Clone() :?> BitArray).And(inputBits)
-        let activatedMinusBits = (minusBits.Clone() :?> BitArray).And(inputBits)
-
-        let activatedBothBits =
-            (activatedPlusBits.Clone() :?> BitArray).And(activatedMinusBits)
-
-        let activatedNoBits =
-            (activatedPlusBits.Clone() :?> BitArray).Or(activatedMinusBits).Not()
-
-        let activatedPlusBitsOnly =
-            (activatedPlusBits.Clone() :?> BitArray).Xor(activatedBothBits)
-
-        let activatedMinusBitsOnly =
-            (activatedMinusBits.Clone() :?> BitArray).Xor(activatedBothBits)
-
         if wasCorrect then
-            if wasNodeTriggered then // excitation
-
-                // remove single activated minus bits
-                minusBits.Xor(activatedMinusBitsOnly) |> ignore
-                // turn activated plus only bits into both bits
-                minusBits.Or(activatedPlusBitsOnly) |> ignore
-                // turn activated no bits into plus only bits
-                plusBits.Or(activatedNoBits)
-
-            else // inhibition
-
-                // remove single activated plus bits
-                plusBits.Xor(activatedPlusBitsOnly) |> ignore
-                // turn activated both bits into plus only bits
-                minusBits.Xor(activatedBothBits) |> ignore
-                // turn activated no bits into minus only bits
-                minusBits.Or(activatedNoBits)
-
-        else if wasNodeTriggered then // inhibition
-
-            // remove single activated plus bits
-            plusBits.Xor(activatedPlusBitsOnly) |> ignore
-            // turn activated both bits into plus only bits
-            minusBits.Xor(activatedBothBits) |> ignore
-            // turn activated no bits into minus only bits
-            minusBits.Or(activatedNoBits)
-
-        else // excitation
-
-            // remove single activated minus bits
-            minusBits.Xor(activatedMinusBitsOnly) |> ignore
-            // turn activated plus only bits into both bits
-            minusBits.Or(activatedPlusBitsOnly) |> ignore
-            // turn activated no bits into plus only bits
-            plusBits.Or(activatedNoBits)
-
-    )
+            if wasNodeTriggered then
+                exciteActiveNodeWeights inputBits nodeWeights
+            else
+                inhibitActiveNodeWeights inputBits nodeWeights
+        else if wasNodeTriggered then
+            inhibitActiveNodeWeights inputBits nodeWeights
+        else
+            exciteActiveNodeWeights inputBits nodeWeights)
 
 let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
