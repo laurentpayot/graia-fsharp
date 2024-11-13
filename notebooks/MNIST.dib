@@ -46,7 +46,7 @@ let model = init {
 
 #!fsharp
 
-showWeights "Initial Input Layer Weights" model.inputWeights
+showLayerWeights "Initial Input Layer Weights" model.inputLayerWeights
 
 #!fsharp
 
@@ -54,14 +54,14 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1
-model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
+let N = 100
+model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 10
 
 model.history.Display("text/plain")
 
 #!fsharp
 
-showWeights "Input Layer Weights" model.inputWeights
+showLayerWeights "Input Layer Weights" model.inputLayerWeights
 
 #!fsharp
 
