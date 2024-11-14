@@ -98,7 +98,7 @@ let private bitArrayPopCount (ba: BitArray) : int =
     ba.CopyTo(uint32s, 0)
     uint32s |> Array.sumBy BitOperations.PopCount
 
-type ActiveWeightBits =
+type WeightPairKind =
     | Plus
     | Minus
     | Both
@@ -106,13 +106,15 @@ type ActiveWeightBits =
     | MinusOnly
     | NoBits
 
-let getActiveWeightBits
-    (asked: ActiveWeightBits array)
+let getWeightBitsWithInput
+    (isInputActive: bool)
+    (asked: WeightPairKind array)
     (inputBits: NodeBits)
     ((plusWeightBits, minusWeightBits): NodeWeights)
     : BitArray array =
-    let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
-    let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
+    let inputBits' = if isInputActive then inputBits else (inputBits.Clone() :?> BitArray).Not()
+    let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits')
+    let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits')
     let both = (plus.Clone() :?> BitArray).And(minus)
 
     asked
@@ -122,7 +124,11 @@ let getActiveWeightBits
         | Both -> both
         | PlusOnly -> (plus.Clone() :?> BitArray).Xor(both)
         | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
-        | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
+        | NoBits -> (inputBits'.Clone() :?> BitArray).Xor(plus).Xor(minus))
+
+let getActiveWeightBits = getWeightBitsWithInput true
+let getInactiveWeightBits = getWeightBitsWithInput false
+
 
 let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
