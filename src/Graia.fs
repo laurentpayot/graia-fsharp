@@ -193,6 +193,7 @@ let mutateLayerWeights
     (inputBits: NodeBits)
     (outputBits: NodeBits)
     (layerWeights: LayerWeights)
+    : unit
     =
     layerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
@@ -212,6 +213,7 @@ let mutateLayerWeights
         else
             // incorrect + node not triggered = excite inactive
             exciteNodeWeightsWithInput false inputBits nodeWeights)
+    |> ignore
 
 let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
