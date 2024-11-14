@@ -25,7 +25,6 @@ To run Graia along with a F# notebook you will need:
 ## TODO
 
 - use .NET 9.0
-- get rid of FSharpPlus
 - showHistory
 - fixed scale charts
 - use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html

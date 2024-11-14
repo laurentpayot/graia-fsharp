@@ -5,10 +5,9 @@ open System
 open System.Collections
 
 open Plotly.NET
-open FSharpPlus
+open Microsoft.DotNet.Interactive
 
 open Graia
-open Microsoft.DotNet.Interactive
 
 
 type ByteRow = array<byte>
@@ -17,8 +16,7 @@ let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     File.ReadAllLines(path)
     // remove header row
     |> Array.skip 1
-    // turning seq into array for performance reasons https://theburningmonk.com/2012/06/f-speed-test-iter-and-map-operations-with-array-vs-list/
-    |> Array.map (String.split [ "," ] >> Array.ofSeq)
+    |> Array.map _.Split(",")
     |> Array.fold
         (fun acc row ->
             let label = Array.head row |> int

@@ -10,10 +10,8 @@
 
 #r "nuget: Plotly.NET"
 #r "nuget: Plotly.NET.Interactive"
-#r "nuget: FSharpPlus"
 
 open Plotly.NET
-open FSharpPlus
 
 #!fsharp
 
