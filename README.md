@@ -24,10 +24,10 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- use .NET 9.0
+- Graia: use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
 - showHistory
 - fixed scale charts
-- Graia: use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
+- use .NET 9.0
 - `model.fit` instead of `fit model`
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
 - **tests**
