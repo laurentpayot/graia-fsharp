@@ -1,5 +1,8 @@
 ﻿module Tools
 
+// disabling experimental library feature warnings (for Array.Parallel.reduceBy)
+#nowarn "57"
+
 open System.IO
 open System
 open System.Collections
@@ -12,13 +15,14 @@ open Graia
 
 type ByteRow = array<byte>
 
+// NB: Parallel treatment of lines does NOT ensure the order of (label, data) pairs to be preserved!
 let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     File.ReadAllLines(path)
     // remove header row
     |> Array.skip 1
     |> Array.Parallel.map _.Split(",")
-    |> Array.fold
-        (fun acc row ->
+    |> Array.Parallel.reduceBy
+        (fun row ->
             let label = Array.head row |> int
 
             let data =
@@ -27,8 +31,8 @@ let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
                 |> Array.skip 1
                 |> Array.map byte
 
-            Array.append acc [| (label, data) |])
-        [||]
+            [| (label, data) |])
+        Array.append
     |> Array.unzip
 
 let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =

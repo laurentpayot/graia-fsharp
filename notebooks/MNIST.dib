@@ -24,8 +24,7 @@ open Tools
 
 #!fsharp
 
-// let labels, images = loadMnistCsv "datasets/mnist_train.csv"
-let labels, images = loadMnistCsv "datasets/mnist_train_head.csv"
+let labels, images = loadMnistCsv "datasets/mnist_train.csv"
 printfn $"Images: {Array.length images}"
 
 #!fsharp
@@ -53,8 +52,8 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1000
-model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 30
+let N = 1_000
+model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
 
 model.history.Display("text/plain")
 
