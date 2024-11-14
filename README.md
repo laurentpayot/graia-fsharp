@@ -24,7 +24,6 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- remove noBits from getActivatedWeights
 - activation: bitCount plus + bitCount both > bitCount minus
 - fixed scale charts
 - showHistory

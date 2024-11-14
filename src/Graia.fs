@@ -101,6 +101,7 @@ type ActiveWeightBits = {
     both: BitArray
     plusOnly: BitArray
     minusOnly: BitArray
+    // dirty option for performance reasons
     noBits: BitArray option
 }
 
