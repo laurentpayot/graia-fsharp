@@ -126,15 +126,14 @@ let getWeightBitsWithInput
         | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
         | NoBits -> (inputBits'.Clone() :?> BitArray).Xor(plus).Xor(minus))
 
-let getActiveWeightBits = getWeightBitsWithInput true
-let getInactiveWeightBits = getWeightBitsWithInput false
-
+// let getActiveWeightBits = getWeightBitsWithInput true
+// let getInactiveWeightBits = getWeightBitsWithInput false
 
 let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         let [| plus; both; minusOnly |] =
-            getActiveWeightBits [| Plus; Both; MinusOnly |] inputBits nodeWeights
+            getWeightBitsWithInput true [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
         (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly)
@@ -159,32 +158,32 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 // effectful function
-let exciteActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+let exciteNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; minusOnly; noBits |] =
-        getActiveWeightBits [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
+        getWeightBitsWithInput isInputActive [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
-    // remove single active minus bits
+    // remove single minus bits
     minusWeightBits.Xor(minusOnly) |> ignore
-    // turn active plus only bits into both bits
+    // turn plus only bits into both bits
     minusWeightBits.Or(plusOnly) |> ignore
-    // turn active no bits into plus only bits
+    // turn no bits into plus only bits
     plusWeightBits.Or(noBits) |> ignore
 
 // effectful function
-let inhibitActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+let inhibitNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; noBits; both |] =
-        getActiveWeightBits [| PlusOnly; NoBits; Both |] inputBits nodeWeights
+        getWeightBitsWithInput isInputActive [| PlusOnly; NoBits; Both |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
-    // remove single active plus bits
+    // remove single plus bits
     plusWeightBits.Xor(plusOnly) |> ignore
     // order is important!
-    // turn active no bits into minus only bits
+    // turn no bits into minus only bits
     minusWeightBits.Or(noBits) |> ignore
-    // turn active both bits into plus only bits
+    // turn both bits into plus only bits
     minusWeightBits.Xor(both) |> ignore
 
 let mutateLayerWeights
@@ -197,23 +196,20 @@ let mutateLayerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
 
+        //  Hebbian learning rule
         if wasCorrect then
             if wasNodeTriggered then
-                exciteActiveNodeWeights inputBits nodeWeights
+                // correct + node triggered = excite active
+                exciteNodeWeightsWithInput true inputBits nodeWeights
             else
-                inhibitActiveNodeWeights inputBits nodeWeights
+                // correct + node not triggered = inhibit inactive
+                inhibitNodeWeightsWithInput false inputBits nodeWeights
         else if wasNodeTriggered then
-            inhibitActiveNodeWeights inputBits nodeWeights
+            // incorrect + node triggered = inhibit active
+            inhibitNodeWeightsWithInput true inputBits nodeWeights
         else
-            exciteActiveNodeWeights inputBits nodeWeights)
-
-        //  TODO Hebbian learning rule
-        // correct + node triggered = excite active
-        // correct + node not triggered = inhibit inactive
-        // incorrect + node triggered = inhibit active
-        // incorrect + node not triggered = excite inactive
-
-
+            // incorrect + node not triggered = excite inactive
+            exciteNodeWeightsWithInput false inputBits nodeWeights)
 
 let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
