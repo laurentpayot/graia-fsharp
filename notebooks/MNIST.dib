@@ -24,7 +24,7 @@ open Tools
 
 #!fsharp
 
-let labels, images = loadMnistCsv "datasets/mnist_train.csv"
+let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train.csv"
 printfn $"Images: {Array.length images}"
 
 #!fsharp
