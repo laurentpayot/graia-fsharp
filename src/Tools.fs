@@ -36,11 +36,10 @@ let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     |> Array.unzip
 
 let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows
-    |> Array.map ((Seq.map (fun v -> v >= threshold)) >> Array.ofSeq >> BitArray)
+    byteRows |> Array.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
 
 let byteRowsToBitArrays (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows |> Array.map (Array.ofSeq >> BitArray)
+    byteRows |> Array.map BitArray
 
 let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
     layerWeights
