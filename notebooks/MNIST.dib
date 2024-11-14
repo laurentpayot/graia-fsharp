@@ -38,7 +38,7 @@ showRowDigitBinarized 200uy images[0]
 let model = init {
     inputBits = 28 * 28
     outputBytes = 10
-    layerNodes = 128
+    layerNodes = 128 * 8
     layers = 3
     seed = Some(123456)
 }
@@ -97,11 +97,11 @@ let plusBits  = BitArray([| true; true; false; false |])
 let inputBits1 = BitArray(4).Not()
 let inputBits0 = BitArray(4)
 
-// let active = getActiveWeightBits true inputBits0 (plusBits, minusBits)
+let active = getWeightBitsWithInput false [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
 
-// exciteActiveNodeWeights inputBits1 (plusBits, minusBits)
-inhibitActiveNodeWeights inputBits1 (plusBits, minusBits)
-printfn "%A" minusBits
-printfn "%A" plusBits
+// inhibitNodeWeightsWithInput true inputBits1 (plusBits, minusBits)
+// inhibitNodeWeightsWithInput true inputBits1 (plusBits, minusBits)
+// printfn "%A" minusBits
+// printfn "%A" plusBits
 
-// printfn "\n%A" active
+printfn "\n%A" active
