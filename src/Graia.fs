@@ -1,5 +1,8 @@
 ﻿module Graia
 
+// disabling incomplete pattern match warnings (for getActiveWeightBits `asked` argument)
+#nowarn "25"
+
 open System.Collections
 open System.Numerics
 open System
@@ -95,48 +98,40 @@ let private bitArrayPopCount (ba: BitArray) : int =
     ba.CopyTo(uint32s, 0)
     uint32s |> Array.sumBy BitOperations.PopCount
 
-type ActiveWeightBits = {
-    // plus: BitArray
-    // minus: BitArray
-    both: BitArray
-    plusOnly: BitArray
-    minusOnly: BitArray
-    // dirty option for performance reasons
-    noBits: BitArray option
-}
+type ActiveWeightBits =
+    | Plus
+    | Minus
+    | Both
+    | PlusOnly
+    | MinusOnly
+    | NoBits
 
 let getActiveWeightBits
-    (getActiveNoBits: Boolean)
+    (asked: ActiveWeightBits array)
     (inputBits: NodeBits)
     ((plusWeightBits, minusWeightBits): NodeWeights)
-    : ActiveWeightBits =
+    : BitArray array =
     let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
     let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
     let both = (plus.Clone() :?> BitArray).And(minus)
-    let plusOnly = (plus.Clone() :?> BitArray).Xor(both)
-    let minusOnly = (minus.Clone() :?> BitArray).Xor(both)
 
-    {
-        // plus = plus
-        // minus = minus
-        both = both
-        plusOnly = plusOnly
-        minusOnly = minusOnly
-        noBits =
-            if getActiveNoBits then
-                Some((inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
-            else
-                None
-    }
+    asked
+    |> Array.map (function
+        | Plus -> plus
+        | Minus -> minus
+        | Both -> both
+        | PlusOnly -> (plus.Clone() :?> BitArray).Xor(both)
+        | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
+        | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
 
 let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
     |> Array.map (fun nodeWeights ->
-        let activeBits = getActiveWeightBits false inputBits nodeWeights
+        let [| plus; both; minusOnly |] =
+            getActiveWeightBits [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
-        (((bitArrayPopCount activeBits.both) <<< 1)
-         + bitArrayPopCount activeBits.plusOnly) > bitArrayPopCount activeBits.minusOnly)
+        (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly)
     |> BitArray
 
 let maxByteIndex (xs: array<byte>) : int =
@@ -159,28 +154,32 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
 
 // effectful function
 let exciteActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
-    let active = getActiveWeightBits true inputBits nodeWeights
+    let [| plusOnly; minusOnly; noBits |] =
+        getActiveWeightBits [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
+
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
     // remove single active minus bits
-    minusWeightBits.Xor(active.minusOnly) |> ignore
+    minusWeightBits.Xor(minusOnly) |> ignore
     // turn active plus only bits into both bits
-    minusWeightBits.Or(active.plusOnly) |> ignore
+    minusWeightBits.Or(plusOnly) |> ignore
     // turn active no bits into plus only bits
-    plusWeightBits.Or(active.noBits.Value) |> ignore
+    plusWeightBits.Or(noBits) |> ignore
 
 // effectful function
 let inhibitActiveNodeWeights (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
-    let active = getActiveWeightBits true inputBits nodeWeights
+    let [| plusOnly; noBits; both |] =
+        getActiveWeightBits [| PlusOnly; NoBits; Both |] inputBits nodeWeights
+
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
     // remove single active plus bits
-    plusWeightBits.Xor(active.plusOnly) |> ignore
+    plusWeightBits.Xor(plusOnly) |> ignore
     // order is important!
     // turn active no bits into minus only bits
-    minusWeightBits.Or(active.noBits.Value) |> ignore
+    minusWeightBits.Or(noBits) |> ignore
     // turn active both bits into plus only bits
-    minusWeightBits.Xor(active.both) |> ignore
+    minusWeightBits.Xor(both) |> ignore
 
 let mutateLayerWeights
     (wasCorrect: bool)
