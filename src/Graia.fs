@@ -92,7 +92,7 @@ let init (config: Config) : Model =
 
 
 //! waiting for native bitArray PopCount https://github.com/dotnet/runtime/issues/104299
-let private bitArrayPopCount (ba: BitArray) : int =
+let bitArrayPopCount (ba: BitArray) : int =
     // 32 = 2^5 (BitOperations.PopCount only works with integers)
     let uint32s: array<uint32> = Array.zeroCreate ((ba.Count >>> 5) + 1)
     ba.CopyTo(uint32s, 0)
@@ -129,14 +129,16 @@ let getWeightBitsWithInput
 // let getActiveWeightBits = getWeightBitsWithInput true
 // let getInactiveWeightBits = getWeightBitsWithInput false
 
-let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
+let layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         let [| plus; both; minusOnly |] =
             getWeightBitsWithInput true [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
-        (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly)
+        (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly
+
+    )
     |> BitArray
 
 let maxByteIndex (xs: array<byte>) : int =
@@ -211,7 +213,7 @@ let mutateLayerWeights
             // incorrect + node not triggered = excite inactive
             exciteNodeWeightsWithInput false inputBits nodeWeights)
 
-let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
+let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
