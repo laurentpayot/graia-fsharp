@@ -13,7 +13,6 @@
   <ItemGroup>
     <PackageReference Include="Plotly.NET" Version="5.1.0" />
     <PackageReference Include="Plotly.NET.Interactive" Version="5.0.0" />
-    <PackageReference Include="FSharpPlus" Version="1.6.1" />
   </ItemGroup>
 
 </Project>
