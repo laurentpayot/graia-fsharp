@@ -15,7 +15,7 @@ open Plotly.NET
 
 #!fsharp
 
-// #r "../output/bin/Debug/net8.0/graia.dll" // to be used after `dotnet build` (dependencies included)
+// #r "../output/bin/Debug/net9.0/graia.dll" // to be used after `dotnet build` (dependencies included)
 #load "../src/Graia.fs"
 #load "../src/Tools.fs"
 

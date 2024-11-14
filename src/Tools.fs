@@ -1,8 +1,5 @@
 ﻿module Tools
 
-// disabling experimental library feature warnings (for Array.Parallel.reduceBy)
-#nowarn "57"
-
 open System.IO
 open System
 open System.Collections
