@@ -15,7 +15,7 @@ open Graia
 
 type ByteRow = array<byte>
 
-// NB: Parallel treatment of lines does NOT guarantee the order of (label, data) pairs to be preserved!
+// NB: Parallel treatment of lines does NOT ensure the order of (label, data) pairs to be preserved!
 let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     File.ReadAllLines(path)
     // remove header row
