@@ -5,6 +5,7 @@ open System
 open System.Collections
 
 open Plotly.NET
+open Plotly.NET.StyleParam
 open Microsoft.DotNet.Interactive
 
 open Graia
@@ -69,7 +70,7 @@ let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
         Chart.Heatmap(
             image,
             ReverseYAxis = true,
-            ColorScale = StyleParam.Colorscale.Greys,
+            ColorScale = Colorscale.Greys,
             ShowScale = false
         )
         |> Chart.withSize (100., 100.)
@@ -82,12 +83,29 @@ let showRowDigit (row: ByteRow) : DisplayedValue = showRowDigitBinarized 0uy row
 let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedValue =
     let matrix = layerWeights |> layerWeightsToMatrix
 
+    let colorBar = ColorBar.init(TickMode = TickMode.Array, TickVals = [| -1; 0; 1; 2 |], ShowTickLabels = true)
+
+    // let colorBar =
+    //     ColorBar.init (
+    //         NTicks = 4,
+    //         Ticks = TickOptions.Outside,
+    //         TickLen = 5.,
+    //         TickWidth = 1.,
+    //         ShowTickLabels = true,
+    //         TickAngle = 0,
+    //         TickFont = Font.init (Size = 12.),
+    //         TickVals = [| -1.; 0.; 1.; 2. |]
+    //     )
+
     let chart =
-        Chart.Heatmap(matrix, ColorScale = StyleParam.Colorscale.Picnic)
+        Chart.Heatmap(matrix, ColorScale = Colorscale.Picnic)//, ColorBar = colorBar)
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Inputs")
         |> Chart.withYAxisStyle ("Nodes")
-        |> Chart.withColorBarStyle (TitleText = "Weights")
+
+        // |> Chart.withColorBarStyle (TitleText = "Weights",  TickVals = [| -1; 0; 1; 2 |])
+        |> Chart.setColorBar colorBar
+
         |> Chart.withSize (1000., 240.)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
@@ -106,7 +124,7 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
     let chart =
         Chart.Heatmap(
             zData = matrix,
-            ColorScale = StyleParam.Colorscale.Blackbody,
+            ColorScale = Colorscale.Blackbody,
             ReverseYAxis = true
         // rowNames = Array.map string [| 0 .. outputs.Length - 1 |]
         )

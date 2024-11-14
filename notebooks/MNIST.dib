@@ -24,8 +24,8 @@ open Tools
 
 #!fsharp
 
-let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train.csv"
-// let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train_head.csv"
+// let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train.csv"
+let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train_head.csv"
 printfn $"Images: {Array.length images}"
 
 #!fsharp
@@ -45,7 +45,7 @@ let model = init {
 
 #!fsharp
 
-showLayerWeights "Initial Input Layer Weights" model.inputLayerWeights
+// showLayerWeights "Initial Input Layer Weights" model.inputLayerWeights
 
 #!fsharp
 
@@ -55,9 +55,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 let N = 10
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 100
-
-// model.history.Display("text/plain")
-()
+|> ignore
 
 #!fsharp
 
