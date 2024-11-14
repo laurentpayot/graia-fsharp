@@ -24,9 +24,15 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
+- remove noBits from getActivatedWeights
+- activation: bitCount plus + bitCount both > bitCount minus
 - fixed scale charts
+- showHistory
+- use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
+  - readMnistCsv
+  - Graia
+- use .NET 9.0
+- `model.fit` instead of `fit model`
+- use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
 - **tests**
   - excitation/inhibition: weights (00,01,10,11) with inputs (0,0,0,0) and (1,1,1,1)
-- use parallel operations on arrays https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule-parallel.html
-- use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
-- use .NET 9.0 when released (no RC)
