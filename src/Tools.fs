@@ -63,15 +63,19 @@ let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
 let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
     let image =
         row
-        |> Seq.map (fun x ->
+        |> Array.map (fun x ->
             if threshold = 0uy then int x
             else if x >= threshold then 1
             else 0)
-        |> Seq.chunkBySize 28
-        |> Seq.rev
+        |> Array.chunkBySize 28
 
     let chart =
-        Chart.Heatmap(image, ColorScale = StyleParam.Colorscale.Greys, ShowScale = false)
+        Chart.Heatmap(
+            image,
+            ReverseYAxis = true,
+            ColorScale = StyleParam.Colorscale.Greys,
+            ShowScale = false
+        )
         |> Chart.withSize (100., 100.)
         |> Chart.withMarginSize (0., 0., 0., 0.)
 
