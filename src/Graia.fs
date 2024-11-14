@@ -126,7 +126,7 @@ let getActiveWeightBits
 
 let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
-    |> Array.map (fun nodeWeights ->
+    |> Array.Parallel.map (fun nodeWeights ->
         let [| plus; both; minusOnly |] =
             getActiveWeightBits [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
@@ -188,7 +188,7 @@ let mutateLayerWeights
     (layerWeights: LayerWeights)
     =
     layerWeights
-    |> Array.mapi (fun i nodeWeights ->
+    |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
 
         if wasCorrect then

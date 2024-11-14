@@ -52,7 +52,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1_000
+let N = 60_000
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
 
 model.history.Display("text/plain")
