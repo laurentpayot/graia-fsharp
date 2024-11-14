@@ -16,7 +16,7 @@ let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     File.ReadAllLines(path)
     // remove header row
     |> Array.skip 1
-    |> Array.map _.Split(",")
+    |> Array.Parallel.map _.Split(",")
     |> Array.fold
         (fun acc row ->
             let label = Array.head row |> int
