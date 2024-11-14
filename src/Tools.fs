@@ -132,3 +132,20 @@ let showOutputs (title: string) (outputs: array<byte>) : DisplayedValue =
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
+
+let showHistory (model: Model) : DisplayedValue =
+    let accuracyChart =
+        Chart.Line(xy = [for e in 1 .. model.history.accuracy.Length -> (e, model.history.accuracy[e - 1])])
+        |> Chart.withTraceInfo(Name="Accuracy")
+    let lossChart =
+        Chart.Line(xy = [for e in 1 .. model.history.loss.Length -> (e, model.history.loss[e - 1])])
+        |> Chart.withTraceInfo(Name="Loss")
+    let chart =
+        Chart.combine [accuracyChart; lossChart]
+        |> Chart.withTitle $"Training History"
+        |> Chart.withXAxisStyle ("Epochs")
+        // |> Chart.withYAxisStyle ("Loss (MAE)")
+        |> Chart.withSize (1000., 250.)
+        |> Chart.withMarginSize (80., 10., 50., 10.)
+
+    chart.Display()
