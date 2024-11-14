@@ -134,6 +134,7 @@ let private layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : No
     |> Array.map (fun nodeWeights ->
         let activeBits = getActiveWeightBits false inputBits nodeWeights
 
+        // activation condition
         (((bitArrayPopCount activeBits.both) <<< 1)
          + bitArrayPopCount activeBits.plusOnly) > bitArrayPopCount activeBits.minusOnly)
     |> BitArray
