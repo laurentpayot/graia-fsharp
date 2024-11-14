@@ -201,6 +201,14 @@ let mutateLayerWeights
         else
             exciteActiveNodeWeights inputBits nodeWeights)
 
+        //  TODO Hebbian learning rule
+        // correct + node triggered = excite active
+        // correct + node not triggered = inhibit inactive
+        // incorrect + node triggered = inhibit active
+        // incorrect + node not triggered = excite inactive
+
+
+
 let private rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
