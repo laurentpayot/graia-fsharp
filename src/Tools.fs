@@ -22,11 +22,11 @@ let loadMnistCsv (path: string) : array<int> * array<ByteRow> =
     |> Array.skip 1
     |> Array.Parallel.map _.Split(",")
     |> Array.Parallel.reduceBy
-        (fun row ->
-            let label = Array.head row |> int
+        (fun columns ->
+            let label = Array.head columns |> int
 
             let data =
-                row
+                columns
                 // remove label column
                 |> Array.skip 1
                 |> Array.map byte
