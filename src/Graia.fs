@@ -194,20 +194,22 @@ let mutateLayerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
 
+        (inputBits, nodeWeights) ||>
+
         //  Hebbian learning rule
         if wasCorrect then
             if wasNodeTriggered then
                 // correct + node triggered = excite active inputs
-                exciteNodeWeightsWithActiveInput inputBits nodeWeights
+                exciteNodeWeightsWithActiveInput
             else
                 // correct + node not triggered = inhibit active inputs
-                inhibitNodeWeightsWithActiveInput inputBits nodeWeights
+                inhibitNodeWeightsWithActiveInput
         else if wasNodeTriggered then
             // incorrect + node triggered = inhibit active inputs
-            inhibitNodeWeightsWithActiveInput inputBits nodeWeights
+            inhibitNodeWeightsWithActiveInput
         else
             // incorrect + node not triggered = excite active inputs
-            exciteNodeWeightsWithActiveInput inputBits nodeWeights
+            exciteNodeWeightsWithActiveInput
 
     )
     |> ignore
