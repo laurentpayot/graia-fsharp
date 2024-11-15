@@ -24,6 +24,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
+- use an array of sbyte for node weights instead of a pair of bit arrays???
 - fixed scale colors in weight charts
 - `model.fit` instead of `fit model`
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
