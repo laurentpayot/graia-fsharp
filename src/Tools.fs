@@ -34,14 +34,14 @@ let loadMnistCsvUnsafeOrder (path: string) : array<int> * array<ByteRow> =
     |> Array.unzip
 
 let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows |> Array.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
+    byteRows |> Array.Parallel.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
 
 let byteRowsToBitArrays (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows |> Array.map BitArray
+    byteRows |> Array.Parallel.map BitArray
 
 let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
     layerWeights
-    |> Array.map (fun (plusBits, minusBits) ->
+    |> Array.Parallel.map (fun (plusBits, minusBits) ->
         let plusBools: array<Boolean> = Array.zeroCreate plusBits.Count
         plusBits.CopyTo(plusBools, 0)
         let minusBools: array<Boolean> = Array.zeroCreate minusBits.Count
@@ -60,7 +60,7 @@ let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
 let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
     let image =
         row
-        |> Array.map (fun b ->
+        |> Array.Parallel.map (fun b ->
             let i = int b
             if threshold = 0uy then [|i; i; i |]
             else if b >= threshold then [| 255; 255; 255 |]
@@ -92,7 +92,7 @@ let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedVal
 
 let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<int>> =
     bitArrays
-    |> Array.map (fun ba ->
+    |> Array.Parallel.map (fun ba ->
         let bools: array<Boolean> = Array.zeroCreate ba.Count
         ba.CopyTo(bools, 0)
         Array.map (fun bool -> if bool then 1 else 0) bools)
