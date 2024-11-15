@@ -33,8 +33,8 @@ printfn $"Images: {Array.length images}"
 let model = init {
     inputBits = 28 * 28
     outputs = 10
-    layerNodes = 128 * 8
-    layers = 3
+    layerNodes = 128
+    layers = 2
     seed = Some(123456)
 }
 
@@ -49,7 +49,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 #!fsharp
 
 let N = 10
-model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 10
+model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 100
 |> ignore
 
 #!fsharp
