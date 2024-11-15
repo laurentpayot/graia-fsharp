@@ -202,17 +202,17 @@ let mutateLayerWeights
         //  Hebbian learning rule
         if wasCorrect then
             if wasNodeTriggered then
-                // correct + node triggered = excite active
+                // correct + node triggered = excite active inputs
                 exciteNodeWeightsWithInput true inputBits nodeWeights
             else
-                // correct + node not triggered = inhibit inactive
-                inhibitNodeWeightsWithInput false inputBits nodeWeights
+                // correct + node not triggered = inhibit active inputs
+                inhibitNodeWeightsWithInput true inputBits nodeWeights
         else if wasNodeTriggered then
-            // incorrect + node triggered = inhibit active
+            // incorrect + node triggered = inhibit active inputs
             inhibitNodeWeightsWithInput true inputBits nodeWeights
         else
-            // incorrect + node not triggered = excite inactive
-            exciteNodeWeightsWithInput false inputBits nodeWeights
+            // incorrect + node not triggered = excite active inputs
+            exciteNodeWeightsWithInput true inputBits nodeWeights
 
     )
     |> ignore
