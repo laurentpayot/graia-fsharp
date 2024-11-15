@@ -78,6 +78,8 @@ let showRowDigit (row: ByteRow) : DisplayedValue = showRowDigitBinarized 0uy row
 
 let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedValue =
     let matrix = layerWeights |> layerWeightsToMatrix
+    let xSize = 80 + max 300 (matrix.Length / 4)
+    let ySize = max 300 (matrix[0].Length / 4)
 
     let chart =
         Chart.Heatmap(matrix, ColorScale = Colorscale.Picnic)
@@ -85,7 +87,7 @@ let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedVal
         |> Chart.withXAxisStyle ("Inputs")
         |> Chart.withYAxisStyle ("Nodes")
         |> Chart.withColorBarStyle (TitleText = "Weights")
-        |> Chart.withSize (1000., 240.)
+        |> Chart.withSize (xSize, ySize)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()
