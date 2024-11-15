@@ -106,15 +106,13 @@ type WeightPairKind =
     | MinusOnly
     | NoBits
 
-let getWeightBitsWithInput
-    (isInputActive: bool)
+let getWeightBitsWithActiveInput
     (asked: WeightPairKind array)
     (inputBits: NodeBits)
     ((plusWeightBits, minusWeightBits): NodeWeights)
     : BitArray array =
-    let inputBits' = if isInputActive then inputBits else (inputBits.Clone() :?> BitArray).Not()
-    let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits')
-    let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits')
+    let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
+    let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
     let both = (plus.Clone() :?> BitArray).And(minus)
 
     asked
@@ -124,16 +122,13 @@ let getWeightBitsWithInput
         | Both -> both
         | PlusOnly -> (plus.Clone() :?> BitArray).Xor(both)
         | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
-        | NoBits -> (inputBits'.Clone() :?> BitArray).Xor(plus).Xor(minus))
-
-// let getActiveWeightBits = getWeightBitsWithInput true
-// let getInactiveWeightBits = getWeightBitsWithInput false
+        | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
 
 let layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         let [| plus; both; minusOnly |] =
-            getWeightBitsWithInput true [| Plus; Both; MinusOnly |] inputBits nodeWeights
+            getWeightBitsWithActiveInput [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
         (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly
@@ -160,9 +155,9 @@ let getLoss (finalBytes: array<byte>) (y: int) : float =
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 // effectful function
-let exciteNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+let exciteNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; minusOnly; noBits |] =
-        getWeightBitsWithInput isInputActive [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
+        getWeightBitsWithActiveInput [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
@@ -174,9 +169,9 @@ let exciteNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (node
     plusWeightBits.Or(noBits) |> ignore
 
 // effectful function
-let inhibitNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+let inhibitNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; noBits; both |] =
-        getWeightBitsWithInput isInputActive [| PlusOnly; NoBits; Both |] inputBits nodeWeights
+        getWeightBitsWithActiveInput [| PlusOnly; NoBits; Both |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
@@ -203,16 +198,16 @@ let mutateLayerWeights
         if wasCorrect then
             if wasNodeTriggered then
                 // correct + node triggered = excite active inputs
-                exciteNodeWeightsWithInput true inputBits nodeWeights
+                exciteNodeWeightsWithActiveInput inputBits nodeWeights
             else
                 // correct + node not triggered = inhibit active inputs
-                inhibitNodeWeightsWithInput true inputBits nodeWeights
+                inhibitNodeWeightsWithActiveInput inputBits nodeWeights
         else if wasNodeTriggered then
             // incorrect + node triggered = inhibit active inputs
-            inhibitNodeWeightsWithInput true inputBits nodeWeights
+            inhibitNodeWeightsWithActiveInput inputBits nodeWeights
         else
             // incorrect + node not triggered = excite active inputs
-            exciteNodeWeightsWithInput true inputBits nodeWeights
+            exciteNodeWeightsWithActiveInput inputBits nodeWeights
 
     )
     |> ignore
