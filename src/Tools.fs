@@ -60,19 +60,15 @@ let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
 let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
     let image =
         row
-        |> Array.map (fun x ->
-            if threshold = 0uy then int x
-            else if x >= threshold then 1
-            else 0)
+        |> Array.map (fun b ->
+            let i = int b
+            if threshold = 0uy then [|i; i; i |]
+            else if b >= threshold then [| 255; 255; 255 |]
+            else [| 0; 0; 0 |])
         |> Array.chunkBySize 28
 
     let chart =
-        Chart.Heatmap(
-            image,
-            ReverseYAxis = true,
-            ColorScale = Colorscale.Greys,
-            ShowScale = false
-        )
+        Chart.Image(image)
         |> Chart.withSize (100., 100.)
         |> Chart.withMarginSize (0., 0., 0., 0.)
 
@@ -83,29 +79,12 @@ let showRowDigit (row: ByteRow) : DisplayedValue = showRowDigitBinarized 0uy row
 let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedValue =
     let matrix = layerWeights |> layerWeightsToMatrix
 
-    let colorBar = ColorBar.init(TickMode = TickMode.Array, TickVals = [| -1; 0; 1; 2 |], ShowTickLabels = true)
-
-    // let colorBar =
-    //     ColorBar.init (
-    //         NTicks = 4,
-    //         Ticks = TickOptions.Outside,
-    //         TickLen = 5.,
-    //         TickWidth = 1.,
-    //         ShowTickLabels = true,
-    //         TickAngle = 0,
-    //         TickFont = Font.init (Size = 12.),
-    //         TickVals = [| -1.; 0.; 1.; 2. |]
-    //     )
-
     let chart =
-        Chart.Heatmap(matrix, ColorScale = Colorscale.Picnic)//, ColorBar = colorBar)
+        Chart.Heatmap(matrix, ColorScale = Colorscale.Picnic)
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Inputs")
         |> Chart.withYAxisStyle ("Nodes")
-
-        // |> Chart.withColorBarStyle (TitleText = "Weights",  TickVals = [| -1; 0; 1; 2 |])
-        |> Chart.setColorBar colorBar
-
+        |> Chart.withColorBarStyle (TitleText = "Weights")
         |> Chart.withSize (1000., 240.)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
