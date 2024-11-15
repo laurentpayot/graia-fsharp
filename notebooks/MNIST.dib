@@ -30,11 +30,6 @@ printfn $"Images: {Array.length images}"
 
 #!fsharp
 
-showRowDigit images[0]
-showRowDigitBinarized 200uy images[0]
-
-#!fsharp
-
 let model = init {
     inputBits = 28 * 28
     outputBytes = 10
@@ -76,6 +71,12 @@ showLayerWeights "Output layer weights" model.outputLayerWeights
 
 #!fsharp
 
+printfn $"Last digit: {labels[N-1]}"
+showRowDigit images[N-1]
+showRowDigitBinarized 200uy images[N-1]
+
+#!fsharp
+
 showIntermediateOutputs "Last Intermediate Outputs" model.lastIntermediateOutputs
 
 #!fsharp
@@ -95,10 +96,10 @@ let plusBits  = BitArray([| true; true; false; false |])
 let inputBits1 = BitArray(4).Not()
 let inputBits0 = BitArray(4)
 
-let active = getWeightBitsWithInput false [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
+let active = getWeightBitsWithActiveInput [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
 
-// inhibitNodeWeightsWithInput true inputBits1 (plusBits, minusBits)
-// inhibitNodeWeightsWithInput true inputBits1 (plusBits, minusBits)
+// inhibitNodeWeightsWithActiveInput inputBits1 (plusBits, minusBits)
+// inhibitNodeWeightsWithActiveInput inputBits1 (plusBits, minusBits)
 // printfn "%A" minusBits
 // printfn "%A" plusBits
 
