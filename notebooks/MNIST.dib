@@ -100,11 +100,8 @@ let plusBits  = BitArray([| true; true; false; false |])
 let inputBits1 = BitArray(4).Not()
 let inputBits0 = BitArray(4)
 
-let active = getWeightBitsWithInput false [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
+exciteNodeWeightsWithActiveInput inputBits1 (plusBits, minusBits)
+// inhibitNodeWeightsWithActiveInput inputBits1 (plusBits, minusBits)
 
-// inhibitNodeWeightsWithInput true inputBits1 (plusBits, minusBits)
-// inhibitNodeWeightsWithInput true inputBits1 (plusBits, minusBits)
-// printfn "%A" minusBits
-// printfn "%A" plusBits
-
-printfn "\n%A" active
+printfn "%A" minusBits
+printfn "%A" plusBits
