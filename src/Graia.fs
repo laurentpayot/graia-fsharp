@@ -212,7 +212,9 @@ let mutateLayerWeights
             inhibitNodeWeightsWithInput true inputBits nodeWeights
         else
             // incorrect + node not triggered = excite inactive
-            exciteNodeWeightsWithInput false inputBits nodeWeights)
+            exciteNodeWeightsWithInput false inputBits nodeWeights
+
+    )
     |> ignore
 
 let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
