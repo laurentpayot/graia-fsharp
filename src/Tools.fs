@@ -118,7 +118,7 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
 
     chart.Display()
 
-let showOutputs (title: string) (outputs: array<byte>) : DisplayedValue =
+let showOutputs (title: string) (outputs: array<int>) : DisplayedValue =
     let intOutputs = Array.map int outputs
     let strLabels = Array.map string [| 0 .. outputs.Length - 1 |]
 

@@ -12,7 +12,7 @@ printfn $"🌄 Graia v{VERSION}"
 
 type Config = {
     inputBits: int
-    outputBytes: int
+    outputs: int
     layerNodes: int
     layers: int
     seed: int option
@@ -35,7 +35,7 @@ type Model = {
     mutable inputLayerWeights: LayerWeights
     mutable hiddenLayersWeights: array<LayerWeights>
     mutable outputLayerWeights: LayerWeights
-    mutable lastOutputs: array<byte>
+    mutable lastOutputs: array<int>
     mutable lastIntermediateOutputs: array<NodeBits>
     mutable lastEpochTotalLoss: float
     mutable lastEpochTotalCorrect: int
@@ -46,14 +46,14 @@ type Model = {
 let init (config: Config) : Model =
     let {
             inputBits = inputBits
-            outputBytes = outputBytes
+            outputs = outputs
             layerNodes = layerNodes
             layers = layers
             seed = seed
         } =
         config
 
-    let outputBits = outputBytes * 8
+    let outputBits = outputs * 32
 
     let parametersNb: int =
         (inputBits * layerNodes)
@@ -118,20 +118,20 @@ let layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     )
     |> BitArray
 
-let maxByteIndex (xs: array<byte>) : int =
+let maxIntIndex (xs: array<int>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
-let getLoss (finalBytes: array<byte>) (y: int) : float =
+let getLoss (outputs: array<int>) (y: int) : float =
     let idealNorm: array<float> =
-        Array.init finalBytes.Length (fun i -> if i = y then 1. else 0.)
+        Array.init outputs.Length (fun i -> if i = y then 1. else 0.)
 
-    let maxByte = Array.max finalBytes
+    let maxOutput = Array.max outputs
 
-    if maxByte = 0uy then
+    if maxOutput = 0 then
         1.0
     else
-        finalBytes
-        |> Array.map (fun x -> float x / float maxByte)
+        outputs
+        |> Array.map (fun x -> float x / float maxOutput)
         |> Array.zip idealNorm
         // mean absolute error
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
@@ -203,12 +203,16 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let finalBits =
         layerOutputs model.outputLayerWeights (Array.last model.lastIntermediateOutputs)
 
-    let finalBytes: array<byte> = Array.zeroCreate (finalBits.Count / 8)
-    finalBits.CopyTo(finalBytes, 0)
-    model.lastOutputs <- finalBytes
+    let final32BitsSections: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
+    finalBits.CopyTo(final32BitsSections, 0)
+    // outputs max value possible is 32
+    let outputs: array<int> =
+        final32BitsSections
+        |> Array.map BitOperations.PopCount
 
-    let answer = maxByteIndex finalBytes
-    let isCorrect = (answer = y) && finalBytes[answer] > 0uy
+    let answer = maxIntIndex outputs
+    let isCorrect = (answer = y) && outputs[answer] > 0
+    let loss = getLoss outputs y
     let teachLayer = mutateLayerWeights isCorrect
 
     model.inputLayerWeights |> teachLayer xs inputLayerBits |> ignore
@@ -221,8 +225,8 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     |> teachLayer (Array.last model.lastIntermediateOutputs) finalBits
     |> ignore
 
-    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + getLoss finalBytes y
-
+    model.lastOutputs <- outputs
+    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
     model.lastEpochTotalCorrect <-
         if isCorrect then
             model.lastEpochTotalCorrect + 1
