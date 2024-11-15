@@ -45,7 +45,11 @@ let model = init {
 
 #!fsharp
 
-// showLayerWeights "Initial Input Layer Weights" model.inputLayerWeights
+showLayerWeights "Initial Input Layer Weights" model.inputLayerWeights
+
+#!fsharp
+
+showLayerWeights "Initial Hidden Layer 0 Weights" model.hiddenLayersWeights[0]
 
 #!fsharp
 

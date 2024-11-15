@@ -71,7 +71,15 @@ let init (config: Config) : Model =
         bytes |> Array.map (fun x -> x > 127uy) |> BitArray
 
     let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
-        Array.init outputDim (fun _ -> randomBitArray inputDim, randomBitArray inputDim)
+        Array.init outputDim (fun _ ->
+            let plusBits = randomBitArray inputDim
+            let minusBits = randomBitArray inputDim
+            let plusBits' =(plusBits.Clone() :?> BitArray).Not()
+            // make minus bits false when plus bits are true
+            minusBits.And(plusBits') |> ignore
+            plusBits, minusBits
+
+        )
 
     let model = {
         graiaVersion = VERSION
@@ -132,11 +140,11 @@ let getWeightBitsWithInput
 let layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
-        let [| plus; both; minusOnly |] =
-            getWeightBitsWithInput true [| Plus; Both; MinusOnly |] inputBits nodeWeights
+        let [| plus; minus; |] =
+            getWeightBitsWithInput true [| Plus; Minus; |] inputBits nodeWeights
 
         // activation condition
-        (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly
+        bitArrayPopCount plus > bitArrayPopCount minus
 
     )
     |> BitArray
@@ -173,6 +181,17 @@ let exciteNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (node
     // turn no bits into plus only bits
     plusWeightBits.Or(noBits) |> ignore
 
+let exciteNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+    let [| minusOnly; noBits |] =
+        getWeightBitsWithInput true [| MinusOnly; NoBits |] inputBits nodeWeights
+
+    let (plusWeightBits, minusWeightBits) = nodeWeights
+
+    // remove single minus bits
+    minusWeightBits.Xor(minusOnly) |> ignore
+    // turn no bits into plus only bits
+    plusWeightBits.Or(noBits) |> ignore
+
 // effectful function
 let inhibitNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; noBits; both |] =
@@ -187,6 +206,19 @@ let inhibitNodeWeightsWithInput (isInputActive: bool) (inputBits: NodeBits) (nod
     minusWeightBits.Or(noBits) |> ignore
     // turn both bits into plus only bits
     minusWeightBits.Xor(both) |> ignore
+
+let inhibitNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+    let [| plusOnly; noBits |] =
+        getWeightBitsWithInput true [| PlusOnly; NoBits; |] inputBits nodeWeights
+
+    let (plusWeightBits, minusWeightBits) = nodeWeights
+
+    // remove single plus bits
+    plusWeightBits.Xor(plusOnly) |> ignore
+    // turn no bits into minus only bits
+    minusWeightBits.Or(noBits) |> ignore
+    // turn both bits into plus only bits
+    // minusWeightBits.Xor(both) |> ignore
 
 let mutateLayerWeights
     (wasCorrect: bool)
@@ -203,16 +235,16 @@ let mutateLayerWeights
         if wasCorrect then
             if wasNodeTriggered then
                 // correct + node triggered = excite active inputs
-                exciteNodeWeightsWithInput true inputBits nodeWeights
+                exciteNodeWeightsWithActiveInput inputBits nodeWeights
             else
                 // correct + node not triggered = inhibit active inputs
-                inhibitNodeWeightsWithInput true inputBits nodeWeights
+                inhibitNodeWeightsWithActiveInput inputBits nodeWeights
         else if wasNodeTriggered then
             // incorrect + node triggered = inhibit active inputs
-            inhibitNodeWeightsWithInput true inputBits nodeWeights
+            inhibitNodeWeightsWithActiveInput inputBits nodeWeights
         else
             // incorrect + node not triggered = excite active inputs
-            exciteNodeWeightsWithInput true inputBits nodeWeights
+            exciteNodeWeightsWithActiveInput inputBits nodeWeights
 
     )
     |> ignore

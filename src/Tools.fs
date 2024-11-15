@@ -50,7 +50,7 @@ let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
         Array.map2
             (fun plus minus ->
                 match plus, minus with
-                | true, true -> 2
+                | true, true -> 100 // should not happen!
                 | true, false -> 1
                 | false, false -> 0
                 | false, true -> -1)
