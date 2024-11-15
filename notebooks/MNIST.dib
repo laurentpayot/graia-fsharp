@@ -24,8 +24,8 @@ open Tools
 
 #!fsharp
 
-// let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train.csv"
-let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train_head.csv"
+let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train.csv"
+// let labels, images = loadMnistCsvUnsafeOrder "datasets/mnist_train_head.csv"
 printfn $"Images: {Array.length images}"
 
 #!fsharp
@@ -33,27 +33,24 @@ printfn $"Images: {Array.length images}"
 let model = init {
     inputBits = 28 * 28
     outputBytes = 10
-    layerNodes = 128 * 8
+    layerNodes = 128
     layers = 3
     seed = Some(123456)
 }
 
 #!fsharp
 
-showLayerWeights "Initial Input Layer Weights" model.inputLayerWeights
+// showLayerWeights "Initial Hidden Layer 0 Weights" model.hiddenLayersWeights[0]
 
 #!fsharp
 
-showLayerWeights "Initial Hidden Layer 0 Weights" model.hiddenLayersWeights[0]
-
-#!fsharp
-
+// let bitArrayImages = byteRowsToBitArrays images
 let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1
-model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 100
+let N = 1_000
+model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 1
 |> ignore
 
 #!fsharp
@@ -76,8 +73,8 @@ showLayerWeights "Output layer weights" model.outputLayerWeights
 #!fsharp
 
 printfn $"Last digit: {labels[N-1]}"
+// showRowDigitBinarized 200uy images[N-1]
 showRowDigit images[N-1]
-showRowDigitBinarized 200uy images[N-1]
 
 #!fsharp
 
