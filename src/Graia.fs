@@ -234,10 +234,9 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
         final32BitsSections
         |> Array.map BitOperations.PopCount
 
-    model.lastOutputs <- outputs
-
     let answer = maxIntIndex outputs
     let isCorrect = (answer = y) && outputs[answer] > 0
+    let loss = getLoss outputs y
     let teachLayer = mutateLayerWeights isCorrect
 
     model.inputLayerWeights |> teachLayer xs inputLayerBits |> ignore
@@ -250,8 +249,8 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     |> teachLayer (Array.last model.lastIntermediateOutputs) finalBits
     |> ignore
 
-    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + getLoss outputs y
-
+    model.lastOutputs <- outputs
+    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
     model.lastEpochTotalCorrect <-
         if isCorrect then
             model.lastEpochTotalCorrect + 1
