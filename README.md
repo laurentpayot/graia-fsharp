@@ -24,7 +24,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- try NodeValues (int?) instead of true/false to be like https://arxiv.org/pdf/2402.17764
+- try byte NodeValues (*only on inference*) instead of true/false to be like https://arxiv.org/pdf/2402.17764
 - fixed scale colors in weight charts
 - `model.fit` instead of `fit model`
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
