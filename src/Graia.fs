@@ -11,7 +11,7 @@ let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
 
 type Config = {
-    inputBits: int
+    inputs: int
     outputs: int
     layerNodes: int
     layers: int
@@ -23,7 +23,11 @@ type History = {
     accuracy: array<float>
 }
 
-type NodeBits = BitArray
+// for inference
+type LayerBytes = array<byte>
+// for training
+type LayerBits = BitArray
+
 // excitatory bits * inhibitory bits
 type NodeWeights = BitArray * BitArray
 
@@ -35,8 +39,8 @@ type Model = {
     mutable inputLayerWeights: LayerWeights
     mutable hiddenLayersWeights: array<LayerWeights>
     mutable outputLayerWeights: LayerWeights
-    mutable lastOutputs: array<int>
-    mutable lastIntermediateOutputs: array<NodeBits>
+    mutable lastOutputs: LayerBytes
+    mutable lastIntermediateOutputs: array<LayerBytes>
     mutable lastEpochTotalLoss: float
     mutable lastEpochTotalCorrect: int
     mutable history: History
@@ -45,7 +49,7 @@ type Model = {
 
 let init (config: Config) : Model =
     let {
-            inputBits = inputBits
+            inputs = inputs
             outputs = outputs
             layerNodes = layerNodes
             layers = layers
@@ -56,7 +60,7 @@ let init (config: Config) : Model =
     let outputBits = outputs * 32
 
     let parametersNb: int =
-        (inputBits * layerNodes)
+        (inputs * layerNodes)
         + (layerNodes * layerNodes * (layers - 1))
         + (layerNodes * outputBits)
 
@@ -84,12 +88,12 @@ let init (config: Config) : Model =
     let model = {
         graiaVersion = VERSION
         config = config
-        inputLayerWeights = randomLayerWeights inputBits layerNodes
+        inputLayerWeights = randomLayerWeights inputs layerNodes
         hiddenLayersWeights =
             Array.init (layers - 1) (fun _ -> randomLayerWeights layerNodes layerNodes)
         outputLayerWeights = randomLayerWeights layerNodes outputBits
         lastOutputs = [||]
-        lastIntermediateOutputs = Array.init layers (fun _ -> BitArray(layerNodes))
+        lastIntermediateOutputs = Array.init layers (fun _ -> Array.zeroCreate layerNodes)
         lastEpochTotalLoss = 0.0
         lastEpochTotalCorrect = 0
         history = { loss = [||]; accuracy = [||] }
@@ -106,17 +110,23 @@ let bitArrayPopCount (ba: BitArray) : int =
     ba.CopyTo(uint32s, 0)
     uint32s |> Array.sumBy BitOperations.PopCount
 
-let layerOutputs (layerWeights: LayerWeights) (inputBits: NodeBits) : NodeBits =
+let layerOutputs (layerWeights: LayerWeights) (inputBytes: LayerBytes) : LayerBytes =
     layerWeights
     |> Array.Parallel.map (fun (plusWeightBits, minusWeightBits) ->
-        let plus' = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
-        let minus' = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
 
+        let sum =
+            inputBytes
+            |> Array.indexed
+            |> (Array.fold (fun sum (i, value) ->
+                    if plusWeightBits[i] then
+                        sum + int value
+                    else if minusWeightBits[i] then
+                        sum + int value else sum
+                ) 0
+                )
         // activation condition
-        bitArrayPopCount plus' > bitArrayPopCount minus'
-
+        sum |> max 0 |> min 255 |> byte
     )
-    |> BitArray
 
 let maxIntIndex (xs: array<int>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
@@ -137,7 +147,7 @@ let getLoss (outputs: array<int>) (y: int) : float =
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 // effectful function
-let exciteNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
     let (plusWeightBits, minusWeightBits) = nodeWeights
     let plus' = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
     let minus' = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
@@ -149,7 +159,7 @@ let exciteNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWei
     plusWeightBits.Or(noBits') |> ignore
 
 // effectful function
-let inhibitNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWeights) : unit =
+let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
     let (plusWeightBits, minusWeightBits) = nodeWeights
     let plus' = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
     let minus' = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
@@ -162,8 +172,8 @@ let inhibitNodeWeightsWithActiveInput (inputBits: NodeBits) (nodeWeights: NodeWe
 
 let mutateLayerWeights
     (wasCorrect: bool)
-    (inputBits: NodeBits)
-    (outputBits: NodeBits)
+    (inputBits: LayerBits)
+    (outputBits: LayerBits)
     (layerWeights: LayerWeights)
     : unit
     =
@@ -190,7 +200,7 @@ let mutateLayerWeights
     )
     |> ignore
 
-let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
+let rowFit (model: Model) (xs: LayerBytes) (y: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
@@ -235,7 +245,7 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
 
     model
 
-let rec fit (xsRows: array<NodeBits>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
+let rec fit (xsRows: array<LayerBytes>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
     if epochs < 1 then
         model
     else
