@@ -188,13 +188,13 @@ let mutateLayerWeights
     (inputBits: NodeBits)
     (outputBits: NodeBits)
     (layerWeights: LayerWeights)
-    : unit
-    =
+    : unit =
     layerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
 
-        (inputBits, nodeWeights) ||>
+        (inputBits, nodeWeights)
+        ||>
 
         //  Hebbian learning rule
         if wasCorrect then
@@ -230,9 +230,7 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
     let final32BitsSections: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
     finalBits.CopyTo(final32BitsSections, 0)
     // outputs max value possible is 32
-    let outputs: array<int> =
-        final32BitsSections
-        |> Array.map BitOperations.PopCount
+    let outputs: array<int> = final32BitsSections |> Array.map BitOperations.PopCount
 
     let answer = maxIntIndex outputs
     let isCorrect = (answer = y) && outputs[answer] > 0
@@ -251,6 +249,7 @@ let rowFit (model: Model) (xs: NodeBits) (y: int) : Model =
 
     model.lastOutputs <- outputs
     model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
+
     model.lastEpochTotalCorrect <-
         if isCorrect then
             model.lastEpochTotalCorrect + 1

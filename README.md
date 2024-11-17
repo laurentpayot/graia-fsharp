@@ -6,13 +6,14 @@ An *experimental* neural network library.
 
 To run Graia along with a F# notebook you will need:
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download)
+- [.NET 9 SDK](https://dotnet.microsoft.com/en-us/download)
 - [Polyglot Notebook VS Code Extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode)
 
 ## Installation
 
 1. `cd src`
 1. `dotnet restore` to install the dependencies.
+1. `dotnet tool restore` to install the tools.
 1. `dotnet build` to create the Graia library.
 
 ## Notebook usage

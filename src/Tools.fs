@@ -34,7 +34,8 @@ let loadMnistCsvUnsafeOrder (path: string) : array<int> * array<ByteRow> =
     |> Array.unzip
 
 let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows |> Array.Parallel.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
+    byteRows
+    |> Array.Parallel.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
 
 let byteRowsToBitArrays (byteRows: array<ByteRow>) : array<BitArray> =
     byteRows |> Array.Parallel.map BitArray
@@ -62,7 +63,8 @@ let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
         row
         |> Array.Parallel.map (fun b ->
             let i = int b
-            if threshold = 0uy then [|i; i; i |]
+
+            if threshold = 0uy then [| i; i; i |]
             else if b >= threshold then [| 255; 255; 255 |]
             else [| 0; 0; 0 |])
         |> Array.chunkBySize 28
@@ -134,13 +136,21 @@ let showOutputs (title: string) (outputs: array<int>) : DisplayedValue =
 
 let showHistory (model: Model) : DisplayedValue =
     let accuracyChart =
-        Chart.Line(xy = [for e in 1 .. model.history.accuracy.Length -> (e, model.history.accuracy[e - 1])])
-        |> Chart.withTraceInfo(Name="Accuracy")
+        Chart.Line(
+            xy = [
+                for e in 1 .. model.history.accuracy.Length -> (e, model.history.accuracy[e - 1])
+            ]
+        )
+        |> Chart.withTraceInfo (Name = "Accuracy")
+
     let lossChart =
-        Chart.Line(xy = [for e in 1 .. model.history.loss.Length -> (e, model.history.loss[e - 1])])
-        |> Chart.withTraceInfo(Name="Loss")
+        Chart.Line(
+            xy = [ for e in 1 .. model.history.loss.Length -> (e, model.history.loss[e - 1]) ]
+        )
+        |> Chart.withTraceInfo (Name = "Loss")
+
     let chart =
-        Chart.combine [accuracyChart; lossChart]
+        Chart.combine [ accuracyChart; lossChart ]
         |> Chart.withTitle $"Training History"
         |> Chart.withXAxisStyle ("Epochs")
         // |> Chart.withYAxisStyle ("Loss (MAE)")
