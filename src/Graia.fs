@@ -57,12 +57,10 @@ let init (config: Config) : Model =
         } =
         config
 
-    let outputBits = outputs * 32
-
     let parametersNb: int =
         (inputs * layerNodes)
         + (layerNodes * layerNodes * (layers - 1))
-        + (layerNodes * outputBits)
+        + (layerNodes * outputs)
 
     let rnd =
         match seed with
@@ -91,7 +89,7 @@ let init (config: Config) : Model =
         inputLayerWeights = randomLayerWeights inputs layerNodes
         hiddenLayersWeights =
             Array.init (layers - 1) (fun _ -> randomLayerWeights layerNodes layerNodes)
-        outputLayerWeights = randomLayerWeights layerNodes outputBits
+        outputLayerWeights = randomLayerWeights layerNodes outputs
         lastOutputs = [||]
         lastIntermediateOutputs = Array.init layers (fun _ -> Array.zeroCreate layerNodes)
         lastEpochTotalLoss = 0.0
@@ -120,22 +118,22 @@ let layerOutputs (layerWeights: LayerWeights) (inputBytes: LayerBytes) : LayerBy
             |> (Array.fold
                     (fun sum (i, value) ->
                         if plusWeightBits[i] then sum + int value
-                        else if minusWeightBits[i] then sum + int value
+                        else if minusWeightBits[i] then sum - int value
                         else sum)
                     0)
         // activation condition
-        sum |> max 0 |> min 255 |> byte)
+        sum / inputBytes.Length |> max 0 |> min 255 |> byte)
 
-let maxIntIndex (xs: array<int>) : int =
+let maxByteIndex (xs: array<byte>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
-let getLoss (outputs: array<int>) (labelIndex: int) : float =
+let getLoss (outputs: array<byte>) (labelIndex: int) : float =
     let idealNorm: array<float> =
         Array.init outputs.Length (fun i -> if i = labelIndex then 1. else 0.)
 
     let maxOutput = Array.max outputs
 
-    if maxOutput = 0 then
+    if maxOutput = 0uy then
         1.0
     else
         outputs
@@ -198,40 +196,41 @@ let mutateLayerWeights
     )
     |> ignore
 
-let rowFit (model: Model) (xs: LayerBytes) (labelIndex: int) : Model =
-    let inputLayerBits = layerOutputs model.inputLayerWeights xs
+let toIsActive (xs: LayerBytes) : LayerBits =
+    xs |> Array.map (fun x -> x > 0uy) |> BitArray
 
-    // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
+let rowFit (model: Model) (xs: LayerBytes) (labelIndex: int) : Model =
+    let inputLayerBytes = layerOutputs model.inputLayerWeights xs
+
+    // intermediate outputs = input layer bytes (included by Array.scan) + hidden layers bytes
     model.lastIntermediateOutputs <-
         model.hiddenLayersWeights
         |> Array.scan
             (fun layerBits layerWeights -> layerOutputs layerWeights layerBits)
-            inputLayerBits
+            inputLayerBytes
 
-    let finalBits =
+    model.lastOutputs <-
         layerOutputs model.outputLayerWeights (Array.last model.lastIntermediateOutputs)
 
-    let final32BitsSections: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
-    finalBits.CopyTo(final32BitsSections, 0)
-    // outputs max value possible is 32
-    let outputs: array<int> = final32BitsSections |> Array.map BitOperations.PopCount
-
-    let answer = maxIntIndex outputs
-    let isCorrect = (answer = labelIndex) && outputs[answer] > 0
-    let loss = getLoss outputs labelIndex
+    let answer = maxByteIndex model.lastOutputs
+    let isCorrect = (answer = labelIndex) && model.lastOutputs[answer] > 0uy
+    let loss = getLoss model.lastOutputs labelIndex
     let teachLayer = mutateLayerWeights isCorrect
 
-    model.inputLayerWeights |> teachLayer xs inputLayerBits |> ignore
+    model.inputLayerWeights
+    |> teachLayer (toIsActive xs) (toIsActive inputLayerBytes)
+    |> ignore
+
+    let lastIntermediateBits = model.lastIntermediateOutputs |> Array.map toIsActive
 
     model.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise model.lastIntermediateOutputs)
+    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise lastIntermediateBits)
     |> ignore
 
     model.outputLayerWeights
-    |> teachLayer (Array.last model.lastIntermediateOutputs) finalBits
+    |> teachLayer (Array.last lastIntermediateBits) (toIsActive model.lastOutputs)
     |> ignore
 
-    model.lastOutputs <- outputs
     model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
 
     model.lastEpochTotalCorrect <-

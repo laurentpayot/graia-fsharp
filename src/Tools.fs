@@ -34,7 +34,8 @@ let loadMnistCsvUnsafeOrder (path: string) : array<int> * array<ByteRow> =
     |> Array.unzip
 
 let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows |> Array.Parallel.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
+    byteRows
+    |> Array.Parallel.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
 
 let byteRowsToBitArrays (byteRows: array<ByteRow>) : array<BitArray> =
     byteRows |> Array.Parallel.map BitArray
@@ -62,7 +63,8 @@ let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
         row
         |> Array.Parallel.map (fun b ->
             let i = int b
-            if threshold = 0uy then [|i; i; i |]
+
+            if threshold = 0uy then [| i; i; i |]
             else if b >= threshold then [| 255; 255; 255 |]
             else [| 0; 0; 0 |])
         |> Array.chunkBySize 28
@@ -92,20 +94,20 @@ let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedVal
 
     chart.Display()
 
-let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<int>> =
-    bitArrays
-    |> Array.Parallel.map (fun ba ->
-        let bools: array<Boolean> = Array.zeroCreate ba.Count
-        ba.CopyTo(bools, 0)
-        Array.map (fun bool -> if bool then 1 else 0) bools)
+// let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<int>> =
+//     bitArrays
+//     |> Array.Parallel.map (fun ba ->
+//         let bools: array<Boolean> = Array.zeroCreate ba.Count
+//         ba.CopyTo(bools, 0)
+//         Array.map (fun bool -> if bool then 1 else 0) bools)
 
-let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : DisplayedValue =
-    let matrix = bitArraysToMatrix outputs
+let showIntermediateOutputs (title: string) (outputs: array<LayerBytes>) : DisplayedValue =
+    let matrix = outputs |> Array.map (Array.map int)
 
     let chart =
         Chart.Heatmap(
             zData = matrix,
-            ColorScale = Colorscale.Blackbody,
+            ColorScale = Colorscale.Hot,
             ReverseYAxis = true
         // rowNames = Array.map string [| 0 .. outputs.Length - 1 |]
         )
@@ -118,7 +120,7 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
 
     chart.Display()
 
-let showOutputs (title: string) (outputs: array<int>) : DisplayedValue =
+let showOutputs (title: string) (outputs: LayerBytes) : DisplayedValue =
     let intOutputs = Array.map int outputs
     let strLabels = Array.map string [| 0 .. outputs.Length - 1 |]
 
@@ -134,13 +136,21 @@ let showOutputs (title: string) (outputs: array<int>) : DisplayedValue =
 
 let showHistory (model: Model) : DisplayedValue =
     let accuracyChart =
-        Chart.Line(xy = [for e in 1 .. model.history.accuracy.Length -> (e, model.history.accuracy[e - 1])])
-        |> Chart.withTraceInfo(Name="Accuracy")
+        Chart.Line(
+            xy = [
+                for e in 1 .. model.history.accuracy.Length -> (e, model.history.accuracy[e - 1])
+            ]
+        )
+        |> Chart.withTraceInfo (Name = "Accuracy")
+
     let lossChart =
-        Chart.Line(xy = [for e in 1 .. model.history.loss.Length -> (e, model.history.loss[e - 1])])
-        |> Chart.withTraceInfo(Name="Loss")
+        Chart.Line(
+            xy = [ for e in 1 .. model.history.loss.Length -> (e, model.history.loss[e - 1]) ]
+        )
+        |> Chart.withTraceInfo (Name = "Loss")
+
     let chart =
-        Chart.combine [accuracyChart; lossChart]
+        Chart.combine [ accuracyChart; lossChart ]
         |> Chart.withTitle $"Training History"
         |> Chart.withXAxisStyle ("Epochs")
         // |> Chart.withYAxisStyle ("Loss (MAE)")
