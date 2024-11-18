@@ -15,6 +15,7 @@ type Config = {
     outputs: int
     layerNodes: int
     layers: int
+    thresholdRatio: int
     seed: int option
 }
 
@@ -124,9 +125,12 @@ let getWeightBitsWithActiveInput
         | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
         | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
 
-let layerOutputs (layerWeights: LayerWeights) (inputBits: LayerBits) : LayerBits =
-    let ratio = bitArrayPopCount inputBits / inputBits.Count
-    // let threshold = inputBits.Count / 2
+let layerOutputsForTR
+    (thresholdRatio: int)
+    (layerWeights: LayerWeights)
+    (inputBits: LayerBits)
+    : LayerBits =
+    let threshold = inputBits.Count / thresholdRatio
 
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
@@ -134,7 +138,7 @@ let layerOutputs (layerWeights: LayerWeights) (inputBits: LayerBits) : LayerBits
             getWeightBitsWithActiveInput [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
-        (bitArrayPopCount plus + bitArrayPopCount both) / (ratio + 1) > bitArrayPopCount minusOnly
+        (bitArrayPopCount plus + bitArrayPopCount both) - bitArrayPopCount minusOnly > threshold
 
     )
     |> BitArray
@@ -218,6 +222,8 @@ let mutateLayerWeights
     |> ignore
 
 let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
+    let layerOutputs = layerOutputsForTR model.config.thresholdRatio
+
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits

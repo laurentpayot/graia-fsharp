@@ -35,6 +35,7 @@ let model = init {
     outputs = 10
     layerNodes = 128
     layers = 3
+    thresholdRatio = 32
     seed = Some(123456)
 }
 
@@ -48,7 +49,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 1000
+let N = 10
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 10
 |> ignore
 
