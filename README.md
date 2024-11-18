@@ -12,7 +12,7 @@ To run Graia along with a F# notebook you will need:
 ## Installation
 
 1. `cd src`
-1. `dotnet restore` to install the dependencies.
+1. `dotnet restore && dotnet tool restore` to install the dependencies.
 1. `dotnet build` to create the Graia library.
 
 ## Notebook usage
