@@ -78,7 +78,7 @@ let init (config: Config) : Model =
         Array.init outputDim (fun _ ->
             let plusBits = randomBitArray inputDim
             let minusBits = randomBitArray inputDim
-            let plusBits' =(plusBits.Clone() :?> BitArray).Not()
+            let plusBits' = (plusBits.Clone() :?> BitArray).Not()
             // make minus bits false when plus bits are true
             minusBits.And(plusBits') |> ignore
             plusBits, minusBits
@@ -117,23 +117,21 @@ let layerOutputs (layerWeights: LayerWeights) (inputBytes: LayerBytes) : LayerBy
         let sum =
             inputBytes
             |> Array.indexed
-            |> (Array.fold (fun sum (i, value) ->
-                    if plusWeightBits[i] then
-                        sum + int value
-                    else if minusWeightBits[i] then
-                        sum + int value else sum
-                ) 0
-                )
+            |> (Array.fold
+                    (fun sum (i, value) ->
+                        if plusWeightBits[i] then sum + int value
+                        else if minusWeightBits[i] then sum + int value
+                        else sum)
+                    0)
         // activation condition
-        sum |> max 0 |> min 255 |> byte
-    )
+        sum |> max 0 |> min 255 |> byte)
 
 let maxIntIndex (xs: array<int>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
-let getLoss (outputs: array<int>) (y: int) : float =
+let getLoss (outputs: array<int>) (labelIndex: int) : float =
     let idealNorm: array<float> =
-        Array.init outputs.Length (fun i -> if i = y then 1. else 0.)
+        Array.init outputs.Length (fun i -> if i = labelIndex then 1. else 0.)
 
     let maxOutput = Array.max outputs
 
@@ -175,32 +173,32 @@ let mutateLayerWeights
     (inputBits: LayerBits)
     (outputBits: LayerBits)
     (layerWeights: LayerWeights)
-    : unit
-    =
+    : unit =
     layerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
 
-        (inputBits, nodeWeights) ||>
-            //  Hebbian learning rule
-            if wasCorrect then
-                if wasNodeTriggered then
-                    // correct + node triggered = excite active inputs
-                    exciteNodeWeightsWithActiveInput
-                else
-                    // correct + node not triggered = inhibit active inputs
-                    inhibitNodeWeightsWithActiveInput
-            else if wasNodeTriggered then
-                // incorrect + node triggered = inhibit active inputs
-                inhibitNodeWeightsWithActiveInput
-            else
-                // incorrect + node not triggered = excite active inputs
+        (inputBits, nodeWeights)
+        ||>
+        //  Hebbian learning rule
+        if wasCorrect then
+            if wasNodeTriggered then
+                // correct + node triggered = excite active inputs
                 exciteNodeWeightsWithActiveInput
+            else
+                // correct + node not triggered = inhibit active inputs
+                inhibitNodeWeightsWithActiveInput
+        else if wasNodeTriggered then
+            // incorrect + node triggered = inhibit active inputs
+            inhibitNodeWeightsWithActiveInput
+        else
+            // incorrect + node not triggered = excite active inputs
+            exciteNodeWeightsWithActiveInput
 
     )
     |> ignore
 
-let rowFit (model: Model) (xs: LayerBytes) (y: int) : Model =
+let rowFit (model: Model) (xs: LayerBytes) (labelIndex: int) : Model =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
@@ -216,13 +214,11 @@ let rowFit (model: Model) (xs: LayerBytes) (y: int) : Model =
     let final32BitsSections: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
     finalBits.CopyTo(final32BitsSections, 0)
     // outputs max value possible is 32
-    let outputs: array<int> =
-        final32BitsSections
-        |> Array.map BitOperations.PopCount
+    let outputs: array<int> = final32BitsSections |> Array.map BitOperations.PopCount
 
     let answer = maxIntIndex outputs
-    let isCorrect = (answer = y) && outputs[answer] > 0
-    let loss = getLoss outputs y
+    let isCorrect = (answer = labelIndex) && outputs[answer] > 0
+    let loss = getLoss outputs labelIndex
     let teachLayer = mutateLayerWeights isCorrect
 
     model.inputLayerWeights |> teachLayer xs inputLayerBits |> ignore
@@ -237,6 +233,7 @@ let rowFit (model: Model) (xs: LayerBytes) (y: int) : Model =
 
     model.lastOutputs <- outputs
     model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
+
     model.lastEpochTotalCorrect <-
         if isCorrect then
             model.lastEpochTotalCorrect + 1
@@ -245,7 +242,12 @@ let rowFit (model: Model) (xs: LayerBytes) (y: int) : Model =
 
     model
 
-let rec fit (xsRows: array<LayerBytes>) (yRows: array<int>) (epochs: int) (model: Model) : Model =
+let rec fit
+    (xsRows: array<LayerBytes>)
+    (labelIndexRows: array<int>)
+    (epochs: int)
+    (model: Model)
+    : Model =
     if epochs < 1 then
         model
     else
@@ -262,7 +264,7 @@ let rec fit (xsRows: array<LayerBytes>) (yRows: array<int>) (epochs: int) (model
 
         model.lastEpochTotalLoss <- 0.0
         model.lastEpochTotalCorrect <- 0
-        Array.fold2 rowFit model xsRows yRows |> ignore
+        Array.fold2 rowFit model xsRows labelIndexRows |> ignore
 
         model.history <- {
             loss =
@@ -273,4 +275,4 @@ let rec fit (xsRows: array<LayerBytes>) (yRows: array<int>) (epochs: int) (model
                 |]
         }
 
-        fit xsRows yRows (epochs - 1) model
+        fit xsRows labelIndexRows (epochs - 1) model
