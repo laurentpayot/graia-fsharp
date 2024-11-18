@@ -125,13 +125,16 @@ let getWeightBitsWithActiveInput
         | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
 
 let layerOutputs (layerWeights: LayerWeights) (inputBits: LayerBits) : LayerBits =
+    let ratio = bitArrayPopCount inputBits / inputBits.Count
+    // let threshold = inputBits.Count / 2
+
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         let [| plus; both; minusOnly |] =
             getWeightBitsWithActiveInput [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
-        (bitArrayPopCount plus + bitArrayPopCount both) > bitArrayPopCount minusOnly
+        (bitArrayPopCount plus + bitArrayPopCount both) / (ratio + 1) > bitArrayPopCount minusOnly
 
     )
     |> BitArray
