@@ -87,54 +87,40 @@ let layerOutputsForTR
     |> BitArray
 
 // effectful function
-let exciteNodeWeightsWithActiveInput
-    (inputBits: LayerBits)
-    (nodeWeights: NodeWeights)
-    : NodeWeights =
+let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; minusOnly; noBits |] =
         getWeightBitsWithActiveInput [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
-    let plusWeightBits' = plusWeightBits.Clone() :?> BitArray
-    let minusWeightBits' = minusWeightBits.Clone() :?> BitArray
 
     // remove single minus bits
-    minusWeightBits'.Xor(minusOnly) |> ignore
+    minusWeightBits.Xor(minusOnly) |> ignore
     // turn plus only bits into both bits
-    minusWeightBits'.Or(plusOnly) |> ignore
+    minusWeightBits.Or(plusOnly) |> ignore
     // turn no bits into plus only bits
-    plusWeightBits'.Or(noBits) |> ignore
-
-    (plusWeightBits', minusWeightBits')
+    plusWeightBits.Or(noBits) |> ignore
 
 // effectful function
-let inhibitNodeWeightsWithActiveInput
-    (inputBits: LayerBits)
-    (nodeWeights: NodeWeights)
-    : NodeWeights =
+let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; noBits; both |] =
         getWeightBitsWithActiveInput [| PlusOnly; NoBits; Both |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
-    let plusWeightBits' = plusWeightBits.Clone() :?> BitArray
-    let minusWeightBits' = minusWeightBits.Clone() :?> BitArray
 
     // remove single plus bits
-    plusWeightBits'.Xor(plusOnly) |> ignore
+    plusWeightBits.Xor(plusOnly) |> ignore
     // order is important!
     // turn no bits into minus only bits
-    minusWeightBits'.Or(noBits) |> ignore
+    minusWeightBits.Or(noBits) |> ignore
     // turn both bits into plus only bits
-    minusWeightBits'.Xor(both) |> ignore
+    minusWeightBits.Xor(both) |> ignore
 
-    (plusWeightBits', minusWeightBits')
-
-let teachLayerWeights
+let mutateLayerWeights
     (wasGood: bool)
     (inputBits: LayerBits)
     (outputBits: LayerBits)
     (layerWeights: LayerWeights)
-    : LayerWeights =
+    : unit =
     layerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
@@ -158,6 +144,8 @@ let teachLayerWeights
             exciteNodeWeightsWithActiveInput
 
     )
+
+    |> ignore
 
 let maxIntIndex (xs: array<int>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
@@ -201,9 +189,9 @@ let evaluate (prediction: Prediction) (answer: int) : Evaluation = {
 type Model = {
     graiaVersion: string
     config: Config
-    inputLayerWeights: LayerWeights
-    hiddenLayersWeights: array<LayerWeights>
-    outputLayerWeights: LayerWeights
+    mutable inputLayerWeights: LayerWeights
+    mutable hiddenLayersWeights: array<LayerWeights>
+    mutable outputLayerWeights: LayerWeights
     lastPrediction: Prediction
     lastAnswer: int
     history: History
@@ -277,24 +265,20 @@ let predict (model: Model) (xs: LayerBits) : Prediction =
         outputBits = outputBits
     }
 
-let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Prediction) : Model =
-    let teachLayer = teachLayerWeights isGood
+let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Prediction) : unit =
+    let teachLayer = mutateLayerWeights isGood
 
-    {
-        model with
-            inputLayerWeights =
-                model.inputLayerWeights |> teachLayer inputBits pred.intermediateOutputBits[0]
+    model.inputLayerWeights
+    |> teachLayer inputBits pred.intermediateOutputBits[0]
+    |> ignore
 
-            hiddenLayersWeights =
-                model.hiddenLayersWeights
-                |> Array.map2
-                    (fun (i, o) w -> teachLayer i o w)
-                    (Array.pairwise pred.intermediateOutputBits)
+    model.hiddenLayersWeights
+    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateOutputBits)
+    |> ignore
 
-            outputLayerWeights =
-                model.outputLayerWeights
-                |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
-    }
+    model.outputLayerWeights
+    |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
+    |> ignore
 
 type EpochData = { totalLoss: float; totalCorrect: int }
 
@@ -309,10 +293,10 @@ let rowFit
     let { loss = previousLoss } = evaluate model.lastPrediction model.lastAnswer
 
     let isBetter = loss < previousLoss
-    let newModel = teachModel isBetter model inputBits pred
+    teachModel isBetter model inputBits pred
 
     {
-        newModel with
+        model with
             lastPrediction = pred
             lastAnswer = labelIndex
     },
