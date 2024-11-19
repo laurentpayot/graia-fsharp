@@ -146,9 +146,6 @@ let mutateLayerWeights
     )
     |> ignore
 
-
-
-
 let maxIntIndex (xs: array<int>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
@@ -174,7 +171,7 @@ let getOutputs (outputBits: LayerBits) : array<int> =
     output32BitsPools |> Array.map BitOperations.PopCount
 
 type Prediction = {
-    intermediateOutputs: array<LayerBits>
+    intermediateOutputBits: array<LayerBits>
     outputBits: LayerBits
 } with
 
@@ -240,7 +237,7 @@ let init (config: Config) : Model =
             Array.init (layersNb - 1) (fun _ -> randomLayerWeights layerNodesNb layerNodesNb)
         outputLayerWeights = randomLayerWeights layerNodesNb outputBitsNb
         lastPrediction = {
-            intermediateOutputs = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
+            intermediateOutputBits = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
             outputBits = BitArray(outputBitsNb)
         }
         lastEpochTotalLoss = 0.0
@@ -257,20 +254,19 @@ let predict (model: Model) (xs: LayerBits) : Prediction =
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
-    let intermediateOutputs =
+    let intermediateOutputBits =
         model.hiddenLayersWeights
         |> Array.scan
             (fun layerBits layerWeights -> layerOutputs layerWeights layerBits)
             inputLayerBits
 
     let outputBits =
-        layerOutputs model.outputLayerWeights (Array.last intermediateOutputs)
+        layerOutputs model.outputLayerWeights (Array.last intermediateOutputBits)
 
     {
-        intermediateOutputs = intermediateOutputs
+        intermediateOutputBits = intermediateOutputBits
         outputBits = outputBits
     }
-
 
 let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     let pred: Prediction = predict model xs
@@ -283,14 +279,16 @@ let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     let isCorrect = eval.isCorrect
     let teachLayer = mutateLayerWeights isCorrect
 
-    model.inputLayerWeights |> teachLayer xs pred.intermediateOutputs[0] |> ignore
+    model.inputLayerWeights
+    |> teachLayer xs pred.intermediateOutputBits[0]
+    |> ignore
 
     model.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateOutputs)
+    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateOutputBits)
     |> ignore
 
     model.outputLayerWeights
-    |> teachLayer (Array.last pred.intermediateOutputs) pred.outputBits
+    |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
     |> ignore
 
     model.lastPrediction <- pred
