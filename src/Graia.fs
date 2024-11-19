@@ -24,7 +24,7 @@ type History = {
     accuracy: array<float>
 }
 
-type LayerBits = BitArray
+type Activations = BitArray
 // excitatory bits * inhibitory bits
 type NodeWeights = BitArray * BitArray
 
@@ -48,7 +48,7 @@ type WeightPairKind =
 
 let getActivatedWeightBits
     (asked: WeightPairKind array)
-    (inputBits: LayerBits)
+    (inputBits: Activations)
     ((plusWeightBits, minusWeightBits): NodeWeights)
     : BitArray array =
     let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
@@ -64,11 +64,11 @@ let getActivatedWeightBits
         | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
         | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
 
-let layerOutputsForTR
+let getActivationsForTR
     (thresholdRatio: int)
     (layerWeights: LayerWeights)
-    (inputBits: LayerBits)
-    : LayerBits =
+    (inputBits: Activations)
+    : Activations =
     let threshold =
         if thresholdRatio = 0 then
             0
@@ -87,7 +87,7 @@ let layerOutputsForTR
     |> BitArray
 
 // effectful function
-let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
+let exciteActivatedNodeWeights (inputBits: Activations) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; minusOnly; noBits |] =
         getActivatedWeightBits [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
 
@@ -101,7 +101,7 @@ let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWe
     plusWeightBits.Or(noBits) |> ignore
 
 // effectful function
-let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
+let inhibitActivatedNodeWeights (inputBits: Activations) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; noBits; both |] =
         getActivatedWeightBits [| PlusOnly; NoBits; Both |] inputBits nodeWeights
 
@@ -117,8 +117,8 @@ let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeW
 
 let mutateLayerWeights
     (wasGood: bool)
-    (inputBits: LayerBits)
-    (outputBits: LayerBits)
+    (inputBits: Activations)
+    (outputBits: Activations)
     (layerWeights: LayerWeights)
     : unit =
     layerWeights
@@ -132,16 +132,16 @@ let mutateLayerWeights
         if wasGood then
             if wasNodeTriggered then
                 // correct + node triggered = excite active inputs
-                exciteNodeWeightsWithActiveInput
+                exciteActivatedNodeWeights
             else
                 // correct + node not triggered = inhibit active inputs
-                inhibitNodeWeightsWithActiveInput
+                inhibitActivatedNodeWeights
         else if wasNodeTriggered then
             // incorrect + node triggered = inhibit active inputs
-            inhibitNodeWeightsWithActiveInput
+            inhibitActivatedNodeWeights
         else
             // incorrect + node not triggered = excite active inputs
-            exciteNodeWeightsWithActiveInput
+            exciteActivatedNodeWeights
 
     )
 
@@ -165,18 +165,18 @@ let getLoss (outputs: array<int>) (labelIndex: int) : float =
         // mean absolute error
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
-let getOutputs (outputBits: LayerBits) : array<int> =
+let getOutputs (outputBits: Activations) : array<int> =
     let output32BitsPools: array<uint32> = Array.zeroCreate (outputBits.Count / 32)
     outputBits.CopyTo(output32BitsPools, 0)
     // outputs maximum value possible is 32
     output32BitsPools |> Array.map BitOperations.PopCount
 
 type Prediction = {
-    intermediateOutputBits: array<LayerBits>
-    outputBits: LayerBits
+    intermediateActivations: array<Activations>
+    outputActivations: Activations
 } with
 
-    member this.outputs = getOutputs this.outputBits
+    member this.outputs = getOutputs this.outputActivations
     member this.result = maxIntIndex this.outputs
 
 type Evaluation = { isCorrect: bool; loss: float }
@@ -235,8 +235,8 @@ let init (config: Config) : Model =
             Array.init (layersNb - 1) (fun _ -> randomLayerWeights layerNodesNb layerNodesNb)
         outputLayerWeights = randomLayerWeights layerNodesNb outputBitsNb
         lastPrediction = {
-            intermediateOutputBits = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
-            outputBits = BitArray(outputBitsNb)
+            intermediateActivations = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
+            outputActivations = BitArray(outputBitsNb)
         }
         lastAnswer = -1
         history = { loss = [||]; accuracy = [||] }
@@ -245,46 +245,46 @@ let init (config: Config) : Model =
     printfn $"🌄 Graia model with {parametersNb} parameters ready."
     model
 
-let predict (model: Model) (xs: LayerBits) : Prediction =
-    let layerOutputs = layerOutputsForTR model.config.thresholdRatio
+let predict (model: Model) (xs: Activations) : Prediction =
+    let layerOutputs = getActivationsForTR model.config.thresholdRatio
 
-    let inputLayerBits = layerOutputs model.inputLayerWeights xs
+    let inputActivations = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
-    let intermediateOutputBits =
+    let intermediateActivations =
         model.hiddenLayersWeights
         |> Array.scan
             (fun layerBits layerWeights -> layerOutputs layerWeights layerBits)
-            inputLayerBits
+            inputActivations
 
-    let outputBits =
-        layerOutputs model.outputLayerWeights (Array.last intermediateOutputBits)
+    let outputActivations =
+        layerOutputs model.outputLayerWeights (Array.last intermediateActivations)
 
     {
-        intermediateOutputBits = intermediateOutputBits
-        outputBits = outputBits
+        intermediateActivations = intermediateActivations
+        outputActivations = outputActivations
     }
 
-let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Prediction) : unit =
+let teachModel (isGood: bool) (model: Model) (inputBits: Activations) (pred: Prediction) : unit =
     let teachLayer = mutateLayerWeights isGood
 
     model.inputLayerWeights
-    |> teachLayer inputBits pred.intermediateOutputBits[0]
+    |> teachLayer inputBits pred.intermediateActivations[0]
     |> ignore
 
     model.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateOutputBits)
+    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateActivations)
     |> ignore
 
     model.outputLayerWeights
-    |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
+    |> teachLayer (Array.last pred.intermediateActivations) pred.outputActivations
     |> ignore
 
 type EpochData = { totalLoss: float; totalCorrect: int }
 
 let rowFit
     (model: Model, data: EpochData)
-    (inputBits: LayerBits)
+    (inputBits: Activations)
     (labelIndex: int)
     : Model * EpochData =
     let pred: Prediction = predict model inputBits
@@ -310,7 +310,7 @@ let rowFit
     }
 
 let rec fit
-    (inputBitsRows: array<LayerBits>)
+    (inputBitsRows: array<Activations>)
     (labelIndexRows: array<int>)
     (epochs: int)
     (model: Model)

@@ -101,8 +101,11 @@ let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<int>> =
         ba.CopyTo(bools, 0)
         Array.map (fun bool -> if bool then 1 else 0) bools)
 
-let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : DisplayedValue =
-    let matrix = bitArraysToMatrix outputs
+let showIntermediateActivations
+    (title: string)
+    (interActivations: array<Activations>)
+    : DisplayedValue =
+    let matrix = bitArraysToMatrix interActivations
 
     let chart =
         Chart.Heatmap(
@@ -110,13 +113,13 @@ let showIntermediateOutputs (title: string) (outputs: array<BitArray>) : Display
             ColorScale = Colorscale.Blackbody,
             ShowScale = false,
             ReverseYAxis = true
-        // rowNames = Array.map string [| 0 .. outputs.Length - 1 |]
+        // rowNames = Array.map string [| 0 .. interActivations.Length - 1 |]
         )
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Nodes")
         |> Chart.withYAxisStyle ("Layers")
         |> Chart.withColorBarStyle (TitleText = "Outputs")
-        |> Chart.withSize (1000., 100. + 20. * float outputs.Length)
+        |> Chart.withSize (1000., 100. + 20. * float interActivations.Length)
         |> Chart.withMarginSize (80., 10., 50., 10.)
 
     chart.Display()

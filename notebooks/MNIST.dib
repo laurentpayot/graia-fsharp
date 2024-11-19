@@ -77,11 +77,11 @@ showRowDigitBinarized 200uy images[N-1]
 
 #!fsharp
 
-showIntermediateOutputs "Last Intermediate Output Bits" model.lastPrediction.intermediateOutputBits
+showIntermediateActivations "Last Intermediate Activations" model.lastPrediction.intermediateActivations
 
 #!fsharp
 
-showIntermediateOutputs "Last Output Bits" [|model.lastPrediction.outputBits|]
+showIntermediateActivations "Last Output Activations" [| model.lastPrediction.outputActivations |]
 
 #!fsharp
 
@@ -100,10 +100,10 @@ let plusBits  = BitArray([| true; true; false; false |])
 let inputBits1 = BitArray(4).Not()
 let inputBits0 = BitArray(4)
 
-let active = getWeightBitsWithActiveInput [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
+let active = getActivatedWeightBits [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
 
-// inhibitNodeWeightsWithActiveInput inputBits1 (plusBits, minusBits)
-// inhibitNodeWeightsWithActiveInput inputBits1 (plusBits, minusBits)
+// inhibitActivatedNodeWeights inputBits1 (plusBits, minusBits)
+// inhibitActivatedNodeWeights inputBits1 (plusBits, minusBits)
 // printfn "%A" minusBits
 // printfn "%A" plusBits
 
