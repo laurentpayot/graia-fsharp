@@ -307,20 +307,19 @@ let rowFit (model: Model) (inputBits: LayerBits) (labelIndex: int) : Model =
     let { loss = previousLoss } = evaluate model.lastPrediction model.lastAnswer
 
     let isBetter = loss < previousLoss
+    let newModel = teachModel isBetter model inputBits pred
 
-    teachModel isBetter model inputBits pred
-
-    model.lastPrediction <- pred
-    model.lastAnswer <- labelIndex
-    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
-
-    model.lastEpochTotalCorrect <-
-        if isCorrect then
-            model.lastEpochTotalCorrect + 1
-        else
-            model.lastEpochTotalCorrect
-
-    model
+    {
+        newModel with
+            lastPrediction = pred
+            lastAnswer = labelIndex
+            lastEpochTotalLoss = model.lastEpochTotalLoss + loss
+            lastEpochTotalCorrect =
+                if isCorrect then
+                    model.lastEpochTotalCorrect + 1
+                else
+                    model.lastEpochTotalCorrect
+    }
 
 let rec fit
     (inputBitsRows: array<LayerBits>)
