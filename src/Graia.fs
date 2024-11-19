@@ -206,8 +206,6 @@ type Model = {
     outputLayerWeights: LayerWeights
     lastPrediction: Prediction
     lastAnswer: int
-    lastEpochTotalLoss: float
-    lastEpochTotalCorrect: int
     history: History
 }
 
@@ -253,8 +251,6 @@ let init (config: Config) : Model =
             outputBits = BitArray(outputBitsNb)
         }
         lastAnswer = -1
-        lastEpochTotalLoss = 0.0
-        lastEpochTotalCorrect = 0
         history = { loss = [||]; accuracy = [||] }
     }
 
@@ -300,7 +296,13 @@ let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Predi
                 |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
     }
 
-let rowFit (model: Model) (inputBits: LayerBits) (labelIndex: int) : Model =
+type EpochData = { totalLoss: float; totalCorrect: int }
+
+let rowFit
+    (model: Model, data: EpochData)
+    (inputBits: LayerBits)
+    (labelIndex: int)
+    : Model * EpochData =
     let pred: Prediction = predict model inputBits
 
     let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
@@ -313,12 +315,14 @@ let rowFit (model: Model) (inputBits: LayerBits) (labelIndex: int) : Model =
         newModel with
             lastPrediction = pred
             lastAnswer = labelIndex
-            lastEpochTotalLoss = model.lastEpochTotalLoss + loss
-            lastEpochTotalCorrect =
-                if isCorrect then
-                    model.lastEpochTotalCorrect + 1
-                else
-                    model.lastEpochTotalCorrect
+    },
+    {
+        totalLoss = data.totalLoss + loss
+        totalCorrect =
+            if isCorrect then
+                data.totalCorrect + 1
+            else
+                data.totalCorrect
     }
 
 let rec fit
@@ -341,19 +345,23 @@ let rec fit
         // printfn
         //     $"Epoch {curr} of {total}\t {progressBar}\t Accuracy {100 * 0}%%\t Loss (MAE) {100 * 0}%%"
 
-        model.lastEpochTotalLoss <- 0.0
-        model.lastEpochTotalCorrect <- 0
-        Array.fold2 rowFit model inputBitsRows labelIndexRows |> ignore
+        let epochModel, epochData =
+            Array.fold2
+                rowFit
+                (model, { totalLoss = 0.0; totalCorrect = 0 })
+                inputBitsRows
+                labelIndexRows
 
-        model.history <- {
-            loss =
-                Array.append model.history.loss [|
-                    model.lastEpochTotalLoss / float inputBitsRows.Length
-                |]
-            accuracy =
-                Array.append model.history.accuracy [|
-                    (float model.lastEpochTotalCorrect) / float inputBitsRows.Length
-                |]
+        fit inputBitsRows labelIndexRows (epochs - 1) {
+            epochModel with
+                history = {
+                    loss =
+                        Array.append model.history.loss [|
+                            epochData.totalLoss / float inputBitsRows.Length
+                        |]
+                    accuracy =
+                        Array.append model.history.accuracy [|
+                            (float epochData.totalCorrect) / float inputBitsRows.Length
+                        |]
+                }
         }
-
-        fit inputBitsRows labelIndexRows (epochs - 1) model
