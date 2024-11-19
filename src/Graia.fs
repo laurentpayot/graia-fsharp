@@ -178,14 +178,12 @@ type Prediction = {
     member this.outputs = getOutputs this.outputBits
     member this.result = maxIntIndex this.outputs
 
-type Evaluation = {
-    prediction: Prediction
-    answer: int
-} with
+type Evaluation = { isCorrect: bool; loss: float }
 
-    member this.isCorrect = this.prediction.result = this.answer
-    member this.loss = getLoss this.prediction.outputs this.answer
-
+let evaluate (prediction: Prediction) (answer: int) : Evaluation = {
+    isCorrect = prediction.result = answer
+    loss = getLoss prediction.outputs answer
+}
 
 type Model = {
     graiaVersion: string
@@ -271,12 +269,8 @@ let predict (model: Model) (xs: LayerBits) : Prediction =
 let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     let pred: Prediction = predict model xs
 
-    let eval: Evaluation = {
-        prediction = pred
-        answer = labelIndex
-    }
+    let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
 
-    let isCorrect = eval.isCorrect
     let teachLayer = mutateLayerWeights isCorrect
 
     model.inputLayerWeights
@@ -292,7 +286,7 @@ let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     |> ignore
 
     model.lastPrediction <- pred
-    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + eval.loss
+    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
 
     model.lastEpochTotalCorrect <-
         if isCorrect then
