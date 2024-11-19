@@ -236,10 +236,10 @@ let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     let finalBits =
         layerOutputs model.outputLayerWeights (Array.last model.lastIntermediateOutputs)
 
-    let final32BitsSections: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
-    finalBits.CopyTo(final32BitsSections, 0)
+    let final32BitsPools: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
+    finalBits.CopyTo(final32BitsPools, 0)
     // outputs max value possible is 32
-    let outputs: array<int> = final32BitsSections |> Array.map BitOperations.PopCount
+    let outputs: array<int> = final32BitsPools |> Array.map BitOperations.PopCount
 
     let answer = maxIntIndex outputs
     let isCorrect = (answer = labelIndex) && outputs[answer] > 0
