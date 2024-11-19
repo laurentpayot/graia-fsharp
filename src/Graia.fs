@@ -1,6 +1,6 @@
 ﻿module Graia
 
-// disabling incomplete pattern match warnings (for getActiveWeightBits `asked` argument)
+// disabling incomplete pattern match warnings (for getActivatedWeightBits `asked` argument)
 #nowarn "25"
 
 open System.Collections
@@ -46,7 +46,7 @@ type WeightPairKind =
     | MinusOnly
     | NoBits
 
-let getWeightBitsWithActiveInput
+let getActivatedWeightBits
     (asked: WeightPairKind array)
     (inputBits: LayerBits)
     ((plusWeightBits, minusWeightBits): NodeWeights)
@@ -78,7 +78,7 @@ let layerOutputsForTR
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         let [| plus; both; minusOnly |] =
-            getWeightBitsWithActiveInput [| Plus; Both; MinusOnly |] inputBits nodeWeights
+            getActivatedWeightBits [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
         // activation condition
         (bitArrayPopCount plus + bitArrayPopCount both) - bitArrayPopCount minusOnly > threshold
@@ -89,7 +89,7 @@ let layerOutputsForTR
 // effectful function
 let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; minusOnly; noBits |] =
-        getWeightBitsWithActiveInput [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
+        getActivatedWeightBits [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
@@ -103,7 +103,7 @@ let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWe
 // effectful function
 let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
     let [| plusOnly; noBits; both |] =
-        getWeightBitsWithActiveInput [| PlusOnly; NoBits; Both |] inputBits nodeWeights
+        getActivatedWeightBits [| PlusOnly; NoBits; Both |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
 
