@@ -87,33 +87,47 @@ let layerOutputsForTR
     |> BitArray
 
 // effectful function
-let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
+let exciteNodeWeightsWithActiveInput
+    (inputBits: LayerBits)
+    (nodeWeights: NodeWeights)
+    : NodeWeights =
     let [| plusOnly; minusOnly; noBits |] =
         getWeightBitsWithActiveInput [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
+    let plusWeightBits' = plusWeightBits.Clone() :?> BitArray
+    let minusWeightBits' = minusWeightBits.Clone() :?> BitArray
 
     // remove single minus bits
-    minusWeightBits.Xor(minusOnly) |> ignore
+    minusWeightBits'.Xor(minusOnly) |> ignore
     // turn plus only bits into both bits
-    minusWeightBits.Or(plusOnly) |> ignore
+    minusWeightBits'.Or(plusOnly) |> ignore
     // turn no bits into plus only bits
-    plusWeightBits.Or(noBits) |> ignore
+    plusWeightBits'.Or(noBits) |> ignore
+
+    (plusWeightBits', minusWeightBits')
 
 // effectful function
-let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
+let inhibitNodeWeightsWithActiveInput
+    (inputBits: LayerBits)
+    (nodeWeights: NodeWeights)
+    : NodeWeights =
     let [| plusOnly; noBits; both |] =
         getWeightBitsWithActiveInput [| PlusOnly; NoBits; Both |] inputBits nodeWeights
 
     let (plusWeightBits, minusWeightBits) = nodeWeights
+    let plusWeightBits' = plusWeightBits.Clone() :?> BitArray
+    let minusWeightBits' = minusWeightBits.Clone() :?> BitArray
 
     // remove single plus bits
-    plusWeightBits.Xor(plusOnly) |> ignore
+    plusWeightBits'.Xor(plusOnly) |> ignore
     // order is important!
     // turn no bits into minus only bits
-    minusWeightBits.Or(noBits) |> ignore
+    minusWeightBits'.Or(noBits) |> ignore
     // turn both bits into plus only bits
-    minusWeightBits.Xor(both) |> ignore
+    minusWeightBits'.Xor(both) |> ignore
+
+    (plusWeightBits', minusWeightBits')
 
 let teachLayerWeights
     (wasGood: bool)
