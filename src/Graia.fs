@@ -130,7 +130,11 @@ let layerOutputsForTR
     (layerWeights: LayerWeights)
     (inputBits: LayerBits)
     : LayerBits =
-    let threshold = inputBits.Count / thresholdRatio
+    let threshold =
+        if thresholdRatio = 0 then
+            0
+        else
+            inputBits.Count / thresholdRatio
 
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
