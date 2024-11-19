@@ -49,7 +49,7 @@ let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
 
 #!fsharp
 
-let N = 10
+let N = 1000
 model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 10
 |> ignore
 
@@ -78,11 +78,11 @@ showRowDigitBinarized 200uy images[N-1]
 
 #!fsharp
 
-showIntermediateOutputs "Last Intermediate Outputs" model.lastIntermediateOutputs
+showIntermediateOutputs "Last Intermediate Outputs" model.lastPrediction.intermediateOutputs
 
 #!fsharp
 
-showOutputs $"Last Digit Choice: {maxIntIndex model.lastOutputs}" model.lastOutputs
+showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPrediction.outputs
 
 #!markdown
 
