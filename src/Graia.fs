@@ -115,12 +115,12 @@ let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeW
     // turn both bits into plus only bits
     minusWeightBits.Xor(both) |> ignore
 
-let mutateLayerWeights
+let teachLayerWeights
     (wasGood: bool)
     (inputBits: LayerBits)
     (outputBits: LayerBits)
     (layerWeights: LayerWeights)
-    : unit =
+    : LayerWeights =
     layerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBits[i]
@@ -144,7 +144,6 @@ let mutateLayerWeights
             exciteNodeWeightsWithActiveInput
 
     )
-    |> ignore
 
 let maxIntIndex (xs: array<int>) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
@@ -188,14 +187,14 @@ let evaluate (prediction: Prediction) (answer: int) : Evaluation = {
 type Model = {
     graiaVersion: string
     config: Config
-    mutable inputLayerWeights: LayerWeights
-    mutable hiddenLayersWeights: array<LayerWeights>
-    mutable outputLayerWeights: LayerWeights
-    mutable lastPrediction: Prediction
-    mutable lastAnswer: int
-    mutable lastEpochTotalLoss: float
-    mutable lastEpochTotalCorrect: int
-    mutable history: History
+    inputLayerWeights: LayerWeights
+    hiddenLayersWeights: array<LayerWeights>
+    outputLayerWeights: LayerWeights
+    lastPrediction: Prediction
+    lastAnswer: int
+    lastEpochTotalLoss: float
+    lastEpochTotalCorrect: int
+    history: History
 }
 
 let init (config: Config) : Model =
@@ -268,20 +267,24 @@ let predict (model: Model) (xs: LayerBits) : Prediction =
         outputBits = outputBits
     }
 
-let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Prediction) : unit =
-    let teachLayer = mutateLayerWeights isGood
+let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Prediction) : Model =
+    let teachLayer = teachLayerWeights isGood
 
-    model.inputLayerWeights
-    |> teachLayer inputBits pred.intermediateOutputBits[0]
-    |> ignore
+    {
+        model with
+            inputLayerWeights =
+                model.inputLayerWeights |> teachLayer inputBits pred.intermediateOutputBits[0]
 
-    model.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateOutputBits)
-    |> ignore
+            hiddenLayersWeights =
+                model.hiddenLayersWeights
+                |> Array.map2
+                    (fun (i, o) w -> teachLayer i o w)
+                    (Array.pairwise pred.intermediateOutputBits)
 
-    model.outputLayerWeights
-    |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
-    |> ignore
+            outputLayerWeights =
+                model.outputLayerWeights
+                |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
+    }
 
 let rowFit (model: Model) (inputBits: LayerBits) (labelIndex: int) : Model =
     let pred: Prediction = predict model inputBits
