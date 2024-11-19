@@ -30,67 +30,6 @@ type NodeWeights = BitArray * BitArray
 
 type LayerWeights = array<NodeWeights>
 
-type Model = {
-    graiaVersion: string
-    config: Config
-    mutable inputLayerWeights: LayerWeights
-    mutable hiddenLayersWeights: array<LayerWeights>
-    mutable outputLayerWeights: LayerWeights
-    mutable lastOutputs: array<int>
-    mutable lastIntermediateOutputs: array<LayerBits>
-    mutable lastEpochTotalLoss: float
-    mutable lastEpochTotalCorrect: int
-    mutable history: History
-}
-
-
-let init (config: Config) : Model =
-    let {
-            inputBits = inputBits
-            outputs = outputs
-            layerNodes = layerNodes
-            layers = layers
-            seed = seed
-        } =
-        config
-
-    let outputBits = outputs * 32
-
-    let parametersNb: int =
-        (inputBits * layerNodes)
-        + (layerNodes * layerNodes * (layers - 1))
-        + (layerNodes * outputBits)
-
-    let rnd =
-        match seed with
-        | Some seed -> Random(seed)
-        | None -> Random()
-
-    let randomBitArray (length: int) : BitArray =
-        let bytes = Array.zeroCreate length
-        rnd.NextBytes bytes
-        bytes |> Array.map (fun x -> x > 127uy) |> BitArray
-
-    let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
-        Array.init outputDim (fun _ -> randomBitArray inputDim, randomBitArray inputDim)
-
-    let model = {
-        graiaVersion = VERSION
-        config = config
-        inputLayerWeights = randomLayerWeights inputBits layerNodes
-        hiddenLayersWeights =
-            Array.init (layers - 1) (fun _ -> randomLayerWeights layerNodes layerNodes)
-        outputLayerWeights = randomLayerWeights layerNodes outputBits
-        lastOutputs = [||]
-        lastIntermediateOutputs = Array.init layers (fun _ -> BitArray(layerNodes))
-        lastEpochTotalLoss = 0.0
-        lastEpochTotalCorrect = 0
-        history = { loss = [||]; accuracy = [||] }
-    }
-
-    printfn $"🌄 Graia model with {parametersNb} parameters ready."
-    model
-
 
 //! waiting for native bitArray PopCount https://github.com/dotnet/runtime/issues/104299
 let bitArrayPopCount (ba: BitArray) : int =
@@ -146,24 +85,6 @@ let layerOutputsForTR
 
     )
     |> BitArray
-
-let maxIntIndex (xs: array<int>) : int =
-    xs |> Array.indexed |> Array.maxBy snd |> fst
-
-let getLoss (outputs: array<int>) (labelIndex: int) : float =
-    let idealNorm: array<float> =
-        Array.init outputs.Length (fun i -> if i = labelIndex then 1. else 0.)
-
-    let maxOutput = Array.max outputs
-
-    if maxOutput = 0 then
-        1.0
-    else
-        outputs
-        |> Array.map (fun x -> float x / float maxOutput)
-        |> Array.zip idealNorm
-        // mean absolute error
-        |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 // effectful function
 let exciteNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeWeights) : unit =
@@ -225,43 +146,155 @@ let mutateLayerWeights
     )
     |> ignore
 
-let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
+
+
+
+let maxIntIndex (xs: array<int>) : int =
+    xs |> Array.indexed |> Array.maxBy snd |> fst
+
+let getLoss (outputs: array<int>) (labelIndex: int) : float =
+    let idealNorm: array<float> =
+        Array.init outputs.Length (fun i -> if i = labelIndex then 1. else 0.)
+
+    let maxOutput = Array.max outputs
+
+    if maxOutput = 0 then
+        1.0
+    else
+        outputs
+        |> Array.map (fun x -> float x / float maxOutput)
+        |> Array.zip idealNorm
+        // mean absolute error
+        |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
+
+let getOutputs (outputBits: LayerBits) : array<int> =
+    let output32BitsPools: array<uint32> = Array.zeroCreate (outputBits.Count / 32)
+    outputBits.CopyTo(output32BitsPools, 0)
+    // outputs maximum value possible is 32
+    output32BitsPools |> Array.map BitOperations.PopCount
+
+type Prediction = {
+    intermediateOutputs: array<LayerBits>
+    outputBits: LayerBits
+} with
+
+    member this.outputs = getOutputs this.outputBits
+    member this.result = maxIntIndex this.outputs
+
+type Evaluation = {
+    prediction: Prediction
+    answer: int
+} with
+
+    member this.isCorrect = this.prediction.result = this.answer
+    member this.loss = getLoss this.prediction.outputs this.answer
+
+
+type Model = {
+    graiaVersion: string
+    config: Config
+    mutable inputLayerWeights: LayerWeights
+    mutable hiddenLayersWeights: array<LayerWeights>
+    mutable outputLayerWeights: LayerWeights
+    mutable lastPrediction: Prediction
+    mutable lastEpochTotalLoss: float
+    mutable lastEpochTotalCorrect: int
+    mutable history: History
+}
+
+let init (config: Config) : Model =
+    let {
+            inputBits = inputBitsNb
+            outputs = outputsNb
+            layerNodes = layerNodesNb
+            layers = layersNb
+            seed = seed
+        } =
+        config
+
+    let outputBitsNb = outputsNb * 32
+
+    let parametersNb: int =
+        (inputBitsNb * layerNodesNb)
+        + (layerNodesNb * layerNodesNb * (layersNb - 1))
+        + (layerNodesNb * outputBitsNb)
+
+    let rnd =
+        match seed with
+        | Some seed -> Random(seed)
+        | None -> Random()
+
+    let randomBitArray (length: int) : BitArray =
+        let bytes = Array.zeroCreate length
+        rnd.NextBytes bytes
+        bytes |> Array.map (fun x -> x > 127uy) |> BitArray
+
+    let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
+        Array.init outputDim (fun _ -> randomBitArray inputDim, randomBitArray inputDim)
+
+    let model = {
+        graiaVersion = VERSION
+        config = config
+        inputLayerWeights = randomLayerWeights inputBitsNb layerNodesNb
+        hiddenLayersWeights =
+            Array.init (layersNb - 1) (fun _ -> randomLayerWeights layerNodesNb layerNodesNb)
+        outputLayerWeights = randomLayerWeights layerNodesNb outputBitsNb
+        lastPrediction = {
+            intermediateOutputs = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
+            outputBits = BitArray(outputBitsNb)
+        }
+        lastEpochTotalLoss = 0.0
+        lastEpochTotalCorrect = 0
+        history = { loss = [||]; accuracy = [||] }
+    }
+
+    printfn $"🌄 Graia model with {parametersNb} parameters ready."
+    model
+
+let predict (model: Model) (xs: LayerBits) : Prediction =
     let layerOutputs = layerOutputsForTR model.config.thresholdRatio
 
     let inputLayerBits = layerOutputs model.inputLayerWeights xs
 
     // intermediate outputs = input layer bits (included by Array.scan) + hidden layers bits
-    model.lastIntermediateOutputs <-
+    let intermediateOutputs =
         model.hiddenLayersWeights
         |> Array.scan
             (fun layerBits layerWeights -> layerOutputs layerWeights layerBits)
             inputLayerBits
 
-    let finalBits =
-        layerOutputs model.outputLayerWeights (Array.last model.lastIntermediateOutputs)
+    let outputBits =
+        layerOutputs model.outputLayerWeights (Array.last intermediateOutputs)
 
-    let final32BitsPools: array<uint32> = Array.zeroCreate (finalBits.Count / 32)
-    finalBits.CopyTo(final32BitsPools, 0)
-    // outputs max value possible is 32
-    let outputs: array<int> = final32BitsPools |> Array.map BitOperations.PopCount
+    {
+        intermediateOutputs = intermediateOutputs
+        outputBits = outputBits
+    }
 
-    let answer = maxIntIndex outputs
-    let isCorrect = (answer = labelIndex) && outputs[answer] > 0
-    let loss = getLoss outputs labelIndex
+
+let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
+    let pred: Prediction = predict model xs
+
+    let eval: Evaluation = {
+        prediction = pred
+        answer = labelIndex
+    }
+
+    let isCorrect = eval.isCorrect
     let teachLayer = mutateLayerWeights isCorrect
 
-    model.inputLayerWeights |> teachLayer xs inputLayerBits |> ignore
+    model.inputLayerWeights |> teachLayer xs pred.intermediateOutputs[0] |> ignore
 
     model.hiddenLayersWeights
-    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise model.lastIntermediateOutputs)
+    |> Array.map2 (fun (i, o) w -> teachLayer i o w) (Array.pairwise pred.intermediateOutputs)
     |> ignore
 
     model.outputLayerWeights
-    |> teachLayer (Array.last model.lastIntermediateOutputs) finalBits
+    |> teachLayer (Array.last pred.intermediateOutputs) pred.outputBits
     |> ignore
 
-    model.lastOutputs <- outputs
-    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
+    model.lastPrediction <- pred
+    model.lastEpochTotalLoss <- model.lastEpochTotalLoss + eval.loss
 
     model.lastEpochTotalCorrect <-
         if isCorrect then
