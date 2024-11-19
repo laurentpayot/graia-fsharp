@@ -78,7 +78,7 @@ showRowDigitBinarized 200uy images[N-1]
 
 #!fsharp
 
-showIntermediateOutputs "Last Intermediate Outputs" model.lastPrediction.intermediateOutputs
+showIntermediateOutputs "Last Intermediate Output Bits" model.lastPrediction.intermediateOutputBits
 
 #!fsharp
 

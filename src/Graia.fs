@@ -266,15 +266,11 @@ let predict (model: Model) (xs: LayerBits) : Prediction =
         outputBits = outputBits
     }
 
-let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
-    let pred: Prediction = predict model xs
-
-    let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
-
-    let teachLayer = mutateLayerWeights isCorrect
+let teachModel (isGood: bool) (model: Model) (inputBits: LayerBits) (pred: Prediction) : unit =
+    let teachLayer = mutateLayerWeights isGood
 
     model.inputLayerWeights
-    |> teachLayer xs pred.intermediateOutputBits[0]
+    |> teachLayer inputBits pred.intermediateOutputBits[0]
     |> ignore
 
     model.hiddenLayersWeights
@@ -284,6 +280,13 @@ let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     model.outputLayerWeights
     |> teachLayer (Array.last pred.intermediateOutputBits) pred.outputBits
     |> ignore
+
+let rowFit (model: Model) (inputBits: LayerBits) (labelIndex: int) : Model =
+    let pred: Prediction = predict model inputBits
+
+    let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
+
+    teachModel isCorrect model inputBits pred
 
     model.lastPrediction <- pred
     model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
@@ -297,7 +300,7 @@ let rowFit (model: Model) (xs: LayerBits) (labelIndex: int) : Model =
     model
 
 let rec fit
-    (xsRows: array<LayerBits>)
+    (inputBitsRows: array<LayerBits>)
     (labelIndexRows: array<int>)
     (epochs: int)
     (model: Model)
@@ -318,15 +321,17 @@ let rec fit
 
         model.lastEpochTotalLoss <- 0.0
         model.lastEpochTotalCorrect <- 0
-        Array.fold2 rowFit model xsRows labelIndexRows |> ignore
+        Array.fold2 rowFit model inputBitsRows labelIndexRows |> ignore
 
         model.history <- {
             loss =
-                Array.append model.history.loss [| model.lastEpochTotalLoss / float xsRows.Length |]
+                Array.append model.history.loss [|
+                    model.lastEpochTotalLoss / float inputBitsRows.Length
+                |]
             accuracy =
                 Array.append model.history.accuracy [|
-                    (float model.lastEpochTotalCorrect) / float xsRows.Length
+                    (float model.lastEpochTotalCorrect) / float inputBitsRows.Length
                 |]
         }
 
-        fit xsRows labelIndexRows (epochs - 1) model
+        fit inputBitsRows labelIndexRows (epochs - 1) model
