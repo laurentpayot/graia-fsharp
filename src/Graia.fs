@@ -116,7 +116,7 @@ let inhibitNodeWeightsWithActiveInput (inputBits: LayerBits) (nodeWeights: NodeW
     minusWeightBits.Xor(both) |> ignore
 
 let mutateLayerWeights
-    (wasCorrect: bool)
+    (wasGood: bool)
     (inputBits: LayerBits)
     (outputBits: LayerBits)
     (layerWeights: LayerWeights)
@@ -129,7 +129,7 @@ let mutateLayerWeights
         ||>
 
         //  Hebbian learning rule
-        if wasCorrect then
+        if wasGood then
             if wasNodeTriggered then
                 // correct + node triggered = excite active inputs
                 exciteNodeWeightsWithActiveInput
@@ -192,6 +192,7 @@ type Model = {
     mutable hiddenLayersWeights: array<LayerWeights>
     mutable outputLayerWeights: LayerWeights
     mutable lastPrediction: Prediction
+    mutable lastAnswer: int
     mutable lastEpochTotalLoss: float
     mutable lastEpochTotalCorrect: int
     mutable history: History
@@ -238,6 +239,7 @@ let init (config: Config) : Model =
             intermediateOutputBits = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
             outputBits = BitArray(outputBitsNb)
         }
+        lastAnswer = -1
         lastEpochTotalLoss = 0.0
         lastEpochTotalCorrect = 0
         history = { loss = [||]; accuracy = [||] }
@@ -285,10 +287,14 @@ let rowFit (model: Model) (inputBits: LayerBits) (labelIndex: int) : Model =
     let pred: Prediction = predict model inputBits
 
     let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
+    let { loss = previousLoss } = evaluate model.lastPrediction model.lastAnswer
 
-    teachModel isCorrect model inputBits pred
+    let isBetter = loss < previousLoss
+
+    teachModel isBetter model inputBits pred
 
     model.lastPrediction <- pred
+    model.lastAnswer <- labelIndex
     model.lastEpochTotalLoss <- model.lastEpochTotalLoss + loss
 
     model.lastEpochTotalCorrect <-
