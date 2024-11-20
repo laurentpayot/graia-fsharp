@@ -56,7 +56,7 @@ let exciteActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeigh
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- min 126y (weight + 1y))
+                nodeWeights[i] <- sbyte (min 127 (int weight + 1)))
         inputBools
         nodeWeights
 
@@ -65,7 +65,7 @@ let inhibitActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeig
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- max -127y (weight + 1y))
+                nodeWeights[i] <- sbyte (max -128 (int weight - 1)))
         inputBools
         nodeWeights
 
@@ -142,9 +142,9 @@ let evaluate (prediction: Prediction) (answer: int) : Evaluation = {
 type Model = {
     graiaVersion: string
     config: Config
-    mutable inputLayerWeights: LayerWeights
-    mutable hiddenLayersWeights: array<LayerWeights>
-    mutable outputLayerWeights: LayerWeights
+    inputLayerWeights: LayerWeights
+    hiddenLayersWeights: array<LayerWeights>
+    outputLayerWeights: LayerWeights
     lastPrediction: Prediction
     lastAnswer: int
     history: History
