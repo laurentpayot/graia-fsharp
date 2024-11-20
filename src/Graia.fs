@@ -120,10 +120,9 @@ let getLoss (outputs: array<int>) (labelIndex: int) : float =
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
 let getOutputs (outputBools: Activations) : array<int> =
-    let output32BitsPools: array<uint32> = Array.zeroCreate (outputBools.Count / 32)
-    outputBools.CopyTo(output32BitsPools, 0)
-    // outputs maximum value possible is 32
-    output32BitsPools |> Array.map BitOperations.PopCount
+    outputBools
+    |> Array.chunkBySize 32
+    |> Array.map (fun pool -> pool |> Array.sumBy (fun b -> if b then 1 else 0))
 
 type Prediction = {
     intermediateActivations: array<Activations>
@@ -173,13 +172,13 @@ let init (config: Config) : Model =
         | Some seed -> Random(seed)
         | None -> Random()
 
-    let randomBitArray (length: int) : BitArray =
+    let randomWeights (length: int) : NodeWeights =
         let bytes = Array.zeroCreate length
         rnd.NextBytes bytes
-        bytes |> Array.map (fun x -> x > 127uy) |> BitArray
+        bytes |> Array.map (fun x -> sbyte (int x - 127))
 
     let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
-        Array.init outputDim (fun _ -> randomBitArray inputDim, randomBitArray inputDim)
+        Array.init outputDim (fun _ -> randomWeights inputDim)
 
     let model = {
         graiaVersion = VERSION
@@ -189,8 +188,8 @@ let init (config: Config) : Model =
             Array.init (layersNb - 1) (fun _ -> randomLayerWeights layerNodesNb layerNodesNb)
         outputLayerWeights = randomLayerWeights layerNodesNb outputBoolsNb
         lastPrediction = {
-            intermediateActivations = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
-            outputActivations = BitArray(outputBoolsNb)
+            intermediateActivations = Array.zeroCreate layersNb
+            outputActivations = Array.zeroCreate outputBoolsNb
         }
         lastAnswer = -1
         history = { loss = [||]; accuracy = [||] }
