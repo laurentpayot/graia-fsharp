@@ -31,11 +31,11 @@ printfn $"Images: {Array.length images}"
 #!fsharp
 
 let model = init {
-    inputBits = 28 * 28
+    inputBools = 28 * 28
     outputs = 10
     layerNodes = 128
     layers = 3
-    thresholdRatio = 32
+    thresholdRatio = 0
     seed = Some(123456)
 }
 
@@ -45,12 +45,12 @@ let model = init {
 
 #!fsharp
 
-let bitArrayImages = byteRowsToBitArraysBinarized 200uy images
+let boolImages = byteToBoolRowsBinarized 200uy images
 
 #!fsharp
 
-let N = 1000
-let model = model |> fit bitArrayImages[0..(N - 1)] labels[0..(N - 1)] 30
+let N = 10
+let model = model |> fit boolImages[0..(N - 1)] labels[0..(N - 1)] 1000
 
 #!fsharp
 
@@ -86,25 +86,3 @@ showIntermediateActivations "Last Output Activations" [| model.lastPrediction.ou
 #!fsharp
 
 showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPrediction.outputs
-
-#!markdown
-
-## Test Procrastination
-
-#!fsharp
-
-open System.Collections
-
-let minusBits = BitArray([| true; false; false; true |])
-let plusBits  = BitArray([| true; true; false; false |])
-let inputBits1 = BitArray(4).Not()
-let inputBits0 = BitArray(4)
-
-let active = getActivatedWeightBits [| Plus; Minus; Both; PlusOnly; MinusOnly; NoBits |] inputBits0 (plusBits, minusBits)
-
-// inhibitActivatedNodeWeights inputBits1 (plusBits, minusBits)
-// inhibitActivatedNodeWeights inputBits1 (plusBits, minusBits)
-// printfn "%A" minusBits
-// printfn "%A" plusBits
-
-printfn "\n%A" active

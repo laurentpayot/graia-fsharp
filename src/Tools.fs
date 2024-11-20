@@ -33,14 +33,11 @@ let loadMnistCsvUnsafeOrder (path: string) : array<int> * array<ByteRow> =
         Array.append
     |> Array.unzip
 
-let byteRowsToActivationsBinarized
-    (threshold: byte)
-    (byteRows: array<ByteRow>)
-    : array<Activations> =
+let byteToBoolRowsBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<Activations> =
     byteRows |> Array.Parallel.map (Array.map (fun v -> v >= threshold))
 
 // TODO
-// let byteRowsToActivations (byteRows: array<ByteRow>) : array<BitArray> =
+// let byteToBoolRows (byteRows: array<ByteRow>) : array<BitArray> =
 //     byteRows |> Array.Parallel.map BitArray
 
 
