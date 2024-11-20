@@ -44,6 +44,7 @@ let getActivationsForTR
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
 
+        // TODO  try zipping inputBools and nodeWeights then filtering by inputBools
         Array.map2
             (fun isActive weight -> if isActive then int weight else 0)
             inputBools
