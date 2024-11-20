@@ -34,7 +34,7 @@ let model = init {
     inputBools = 28 * 28
     outputs = 10
     layerNodes = 128
-    layers = 3
+    layers = 4
     thresholdRatio = 0
     seed = Some(123456)
 }
@@ -49,8 +49,8 @@ let boolImages = byteToBoolRowsBinarized 200uy images
 
 #!fsharp
 
-let N = 100
-let model = model |> fit boolImages[0..(N - 1)] labels[0..(N - 1)] 100
+let N = 10
+let model = model |> fit boolImages[0..(N - 1)] labels[0..(N - 1)] 200
 
 #!fsharp
 

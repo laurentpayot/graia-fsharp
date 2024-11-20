@@ -2,7 +2,6 @@
 
 open System.IO
 open System
-open System.Collections
 
 open Plotly.NET
 open Plotly.NET.StyleParam
