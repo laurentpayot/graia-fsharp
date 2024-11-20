@@ -25,7 +25,7 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- use an array of sbyte for node weights instead of a pair of bit arrays??? (arrays are mutable https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-arraymodule.html#set)
+- new branch: byte activations? (and no pooling)
 - fixed scale colors in weight charts
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
 - **tests**
