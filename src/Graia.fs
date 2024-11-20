@@ -11,7 +11,7 @@ let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
 
 type Config = {
-    inputBits: int
+    inputBools: int
     outputs: int
     layerNodes: int
     layers: int
@@ -24,108 +24,65 @@ type History = {
     accuracy: array<float>
 }
 
-type Activations = BitArray
-// excitatory bits * inhibitory bits
-type NodeWeights = BitArray * BitArray
+type Activations = array<bool>
+type NodeWeights = array<sbyte>
 
 type LayerWeights = array<NodeWeights>
 
 
-//! waiting for native bitArray PopCount https://github.com/dotnet/runtime/issues/104299
-let bitArrayPopCount (ba: BitArray) : int =
-    // 32 = 2^5 (BitOperations.PopCount only works with integers)
-    let uint32s: array<uint32> = Array.zeroCreate ((ba.Count >>> 5) + 1)
-    ba.CopyTo(uint32s, 0)
-    uint32s |> Array.sumBy BitOperations.PopCount
-
-type WeightPairKind =
-    | Plus
-    | Minus
-    | Both
-    | PlusOnly
-    | MinusOnly
-    | NoBits
-
-let getActivatedWeightBits
-    (asked: WeightPairKind array)
-    (inputBits: Activations)
-    ((plusWeightBits, minusWeightBits): NodeWeights)
-    : BitArray array =
-    let plus = (plusWeightBits.Clone() :?> BitArray).And(inputBits)
-    let minus = (minusWeightBits.Clone() :?> BitArray).And(inputBits)
-    let both = (plus.Clone() :?> BitArray).And(minus)
-
-    asked
-    |> Array.map (function
-        | Plus -> plus
-        | Minus -> minus
-        | Both -> both
-        | PlusOnly -> (plus.Clone() :?> BitArray).Xor(both)
-        | MinusOnly -> (minus.Clone() :?> BitArray).Xor(both)
-        | NoBits -> (inputBits.Clone() :?> BitArray).Xor(plus).Xor(minus))
-
 let getActivationsForTR
     (thresholdRatio: int)
     (layerWeights: LayerWeights)
-    (inputBits: Activations)
+    (inputBools: Activations)
     : Activations =
     let threshold =
         if thresholdRatio = 0 then
             0
         else
-            inputBits.Count / thresholdRatio
+            inputBools.Length / thresholdRatio
 
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
-        let [| plus; both; minusOnly |] =
-            getActivatedWeightBits [| Plus; Both; MinusOnly |] inputBits nodeWeights
 
+        Array.map2
+            (fun isActive weight -> if isActive then int weight else 0)
+            inputBools
+            nodeWeights
+        |> Array.sum
         // activation condition
-        (bitArrayPopCount plus + bitArrayPopCount both) - bitArrayPopCount minusOnly > threshold
+        |> fun sum -> sum > threshold
 
     )
-    |> BitArray
 
 // effectful function
-let exciteActivatedNodeWeights (inputBits: Activations) (nodeWeights: NodeWeights) : unit =
-    let [| plusOnly; minusOnly; noBits |] =
-        getActivatedWeightBits [| PlusOnly; MinusOnly; NoBits |] inputBits nodeWeights
-
-    let (plusWeightBits, minusWeightBits) = nodeWeights
-
-    // remove single minus bits
-    minusWeightBits.Xor(minusOnly) |> ignore
-    // turn plus only bits into both bits
-    minusWeightBits.Or(plusOnly) |> ignore
-    // turn no bits into plus only bits
-    plusWeightBits.Or(noBits) |> ignore
+let exciteActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeights) : unit =
+    Array.iteri2
+        (fun i isActive weight ->
+            if isActive then
+                nodeWeights[i] <- min 126y (weight + 1y))
+        inputBools
+        nodeWeights
 
 // effectful function
-let inhibitActivatedNodeWeights (inputBits: Activations) (nodeWeights: NodeWeights) : unit =
-    let [| plusOnly; noBits; both |] =
-        getActivatedWeightBits [| PlusOnly; NoBits; Both |] inputBits nodeWeights
-
-    let (plusWeightBits, minusWeightBits) = nodeWeights
-
-    // remove single plus bits
-    plusWeightBits.Xor(plusOnly) |> ignore
-    // order is important!
-    // turn no bits into minus only bits
-    minusWeightBits.Or(noBits) |> ignore
-    // turn both bits into plus only bits
-    minusWeightBits.Xor(both) |> ignore
+let inhibitActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeights) : unit =
+    Array.iteri2
+        (fun i isActive weight ->
+            if isActive then
+                nodeWeights[i] <- max -127y (weight + 1y))
+        inputBools
+        nodeWeights
 
 let mutateLayerWeights
     (wasGood: bool)
-    (inputBits: Activations)
-    (outputBits: Activations)
+    (inputBools: Activations)
+    (outputBools: Activations)
     (layerWeights: LayerWeights)
     : unit =
     layerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
-        let wasNodeTriggered = outputBits[i]
+        let wasNodeTriggered = outputBools[i]
 
-        (inputBits, nodeWeights)
+        (inputBools, nodeWeights)
         ||>
 
         //  Hebbian learning rule
@@ -165,9 +122,9 @@ let getLoss (outputs: array<int>) (labelIndex: int) : float =
         // mean absolute error
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
-let getOutputs (outputBits: Activations) : array<int> =
-    let output32BitsPools: array<uint32> = Array.zeroCreate (outputBits.Count / 32)
-    outputBits.CopyTo(output32BitsPools, 0)
+let getOutputs (outputBools: Activations) : array<int> =
+    let output32BitsPools: array<uint32> = Array.zeroCreate (outputBools.Count / 32)
+    outputBools.CopyTo(output32BitsPools, 0)
     // outputs maximum value possible is 32
     output32BitsPools |> Array.map BitOperations.PopCount
 
@@ -199,7 +156,7 @@ type Model = {
 
 let init (config: Config) : Model =
     let {
-            inputBits = inputBitsNb
+            inputBools = inputBoolsNb
             outputs = outputsNb
             layerNodes = layerNodesNb
             layers = layersNb
@@ -207,12 +164,12 @@ let init (config: Config) : Model =
         } =
         config
 
-    let outputBitsNb = outputsNb * 32
+    let outputBoolsNb = outputsNb * 32
 
     let parametersNb: int =
-        (inputBitsNb * layerNodesNb)
+        (inputBoolsNb * layerNodesNb)
         + (layerNodesNb * layerNodesNb * (layersNb - 1))
-        + (layerNodesNb * outputBitsNb)
+        + (layerNodesNb * outputBoolsNb)
 
     let rnd =
         match seed with
@@ -230,13 +187,13 @@ let init (config: Config) : Model =
     let model = {
         graiaVersion = VERSION
         config = config
-        inputLayerWeights = randomLayerWeights inputBitsNb layerNodesNb
+        inputLayerWeights = randomLayerWeights inputBoolsNb layerNodesNb
         hiddenLayersWeights =
             Array.init (layersNb - 1) (fun _ -> randomLayerWeights layerNodesNb layerNodesNb)
-        outputLayerWeights = randomLayerWeights layerNodesNb outputBitsNb
+        outputLayerWeights = randomLayerWeights layerNodesNb outputBoolsNb
         lastPrediction = {
             intermediateActivations = Array.init layersNb (fun _ -> BitArray(layerNodesNb))
-            outputActivations = BitArray(outputBitsNb)
+            outputActivations = BitArray(outputBoolsNb)
         }
         lastAnswer = -1
         history = { loss = [||]; accuracy = [||] }
@@ -265,11 +222,11 @@ let predict (model: Model) (xs: Activations) : Prediction =
         outputActivations = outputActivations
     }
 
-let teachModel (isGood: bool) (model: Model) (inputBits: Activations) (pred: Prediction) : unit =
+let teachModel (isGood: bool) (model: Model) (inputBools: Activations) (pred: Prediction) : unit =
     let teachLayer = mutateLayerWeights isGood
 
     model.inputLayerWeights
-    |> teachLayer inputBits pred.intermediateActivations[0]
+    |> teachLayer inputBools pred.intermediateActivations[0]
     |> ignore
 
     model.hiddenLayersWeights
@@ -284,16 +241,16 @@ type EpochData = { totalLoss: float; totalCorrect: int }
 
 let rowFit
     (model: Model, data: EpochData)
-    (inputBits: Activations)
+    (inputBools: Activations)
     (labelIndex: int)
     : Model * EpochData =
-    let pred: Prediction = predict model inputBits
+    let pred: Prediction = predict model inputBools
 
     let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
     let { loss = previousLoss } = evaluate model.lastPrediction model.lastAnswer
 
     let isBetter = loss < previousLoss
-    teachModel isBetter model inputBits pred
+    teachModel isBetter model inputBools pred
 
     {
         model with
@@ -310,7 +267,7 @@ let rowFit
     }
 
 let rec fit
-    (inputBitsRows: array<Activations>)
+    (inputBoolsRows: array<Activations>)
     (labelIndexRows: array<int>)
     (epochs: int)
     (model: Model)
@@ -333,19 +290,19 @@ let rec fit
             Array.fold2
                 rowFit
                 (model, { totalLoss = 0.0; totalCorrect = 0 })
-                inputBitsRows
+                inputBoolsRows
                 labelIndexRows
 
-        fit inputBitsRows labelIndexRows (epochs - 1) {
+        fit inputBoolsRows labelIndexRows (epochs - 1) {
             epochModel with
                 history = {
                     loss =
                         Array.append model.history.loss [|
-                            epochData.totalLoss / float inputBitsRows.Length
+                            epochData.totalLoss / float inputBoolsRows.Length
                         |]
                     accuracy =
                         Array.append model.history.accuracy [|
-                            (float epochData.totalCorrect) / float inputBitsRows.Length
+                            (float epochData.totalCorrect) / float inputBoolsRows.Length
                         |]
                 }
         }
