@@ -43,14 +43,10 @@ let getActivationsForTR
 
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
+        (0, inputBools, nodeWeights)
+        |||> Array.fold2 (fun sum isActive weight -> if isActive then sum + int weight else sum)
 
-        // TODO  try zipping inputBools and nodeWeights then filtering by inputBools
-        Array.map2
-            (fun isActive weight -> if isActive then int weight else 0)
-            inputBools
-            nodeWeights
-        |> Array.sum
-        // activation condition
+        // activation function
         |> fun sum -> sum > threshold
 
     )
