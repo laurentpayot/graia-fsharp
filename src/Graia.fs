@@ -71,7 +71,7 @@ let inhibitActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeig
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- min -MAX_WEIGHT (weight - 1y))
+                nodeWeights[i] <- max -MAX_WEIGHT (weight - 1y))
         inputBools
         nodeWeights
 

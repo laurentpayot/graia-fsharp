@@ -89,7 +89,7 @@ showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPredic
 
 #!fsharp
 
-let w = [| 2y |]
-inhibitActivatedNodeWeights [| true |] w
-// exciteActivatedNodeWeights [| true |] w
+let w = [| 0y |]
+exciteActivatedNodeWeights [| true |] w
+// inhibitActivatedNodeWeights [| true |] w
 w
