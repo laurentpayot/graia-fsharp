@@ -6,7 +6,7 @@ let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
 
 
-let MAX_WEIGHT = 20y
+let MAX_WEIGHT = 22y
 
 type Config = {
     inputBools: int

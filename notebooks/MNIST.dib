@@ -35,7 +35,7 @@ let model = init {
     outputs = 10
     layerNodes = 128
     layers = 3
-    thresholdRatio = 32
+    thresholdRatio = 16
     seed = Some(123456)
 }
 
