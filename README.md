@@ -25,8 +25,6 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- weights signed bytes from -32 to 32 to represent signed integer powers of 2 (-1 for negatives) that will be summed
-  - NB: 1 <<< 2 == 4, -1 <<< 2 == -4
 - fixed scale colors in weight charts
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
 - **tests**
