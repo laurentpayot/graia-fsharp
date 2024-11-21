@@ -108,3 +108,8 @@ let active = getActivatedWeightBits [| Plus; Minus; Both; PlusOnly; MinusOnly; N
 // printfn "%A" plusBits
 
 printfn "\n%A" active
+
+
+printfn ""
+for b in BitArray([| -5 |]) do
+    printf "%s" (if b then "1" else "0")
