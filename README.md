@@ -25,7 +25,8 @@ To run Graia along with a F# notebook you will need:
 
 ## TODO
 
-- byte inputs and byte outputs (no bit count of pools, just 8 bits to byte)
+- byte outputs (no bit count of pools, just 8 bits to byte)
+- byte inputs?
 - fixed scale colors in weight charts
 - use builder pattern for model generation??? https://sporto.github.io/elm-patterns/basic/builder-pattern.html
 - **tests**
