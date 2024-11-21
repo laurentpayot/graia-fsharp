@@ -5,6 +5,9 @@ open System
 let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
 
+
+let MAX_WEIGHT = 20y
+
 type Config = {
     inputBools: int
     outputs: int
@@ -20,6 +23,7 @@ type History = {
 }
 
 type Activations = array<bool>
+// weights are signed bytes from -MAX_WEIGHT to MAX_WEIGHT to represent signed integers ±2^weight
 type NodeWeights = array<sbyte>
 
 type LayerWeights = array<NodeWeights>
@@ -39,7 +43,12 @@ let getActivationsForTR
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         (0, inputBools, nodeWeights)
-        |||> Array.fold2 (fun sum isActive weight -> if isActive then sum + int weight else sum)
+        |||> Array.fold2 (fun sum isActive weight ->
+            if isActive = false || weight = 0y then
+                sum
+            else
+                let step = (if weight > 0y then 1 else -1) <<< int ((abs weight) - 1y)
+                sum + step)
 
         // activation function
         |> fun sum -> sum > threshold
@@ -51,7 +60,7 @@ let exciteActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeigh
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- sbyte (min 127 ((int weight) <<< 1)))
+                nodeWeights[i] <- min MAX_WEIGHT (weight + 1y))
         inputBools
         nodeWeights
 
@@ -60,7 +69,7 @@ let inhibitActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeig
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- sbyte (max -128 ((int weight) >>> 1)))
+                nodeWeights[i] <- min -MAX_WEIGHT (weight - 1y))
         inputBools
         nodeWeights
 
