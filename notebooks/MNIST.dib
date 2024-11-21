@@ -81,10 +81,6 @@ showIntermediateActivations "Last Intermediate Activations" model.lastPrediction
 
 #!fsharp
 
-showIntermediateActivations "Last Output Activations" [| model.lastPrediction.outputActivations |]
-
-#!fsharp
-
 showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPrediction.outputs
 
 #!markdown
@@ -93,14 +89,7 @@ showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPredic
 
 #!fsharp
 
-let mutate (b: Activations) (w: NodeWeights): unit =
-    inhibitActivatedNodeWeights b w
-// let a = [| 1y |]
-// excite a
-// a
-let lw = [| [| -100y |] |]
-
-let f x = Array.Parallel.mapi (fun i wts -> ([| true |], wts) ||> mutate ) x
-
-f lw
-lw
+let w = [| 2y |]
+inhibitActivatedNodeWeights [| true |] w
+// exciteActivatedNodeWeights [| true |] w
+w

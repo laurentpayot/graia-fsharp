@@ -1,10 +1,11 @@
 ﻿module Graia
 
 open System
+open System.Collections
+
 
 let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
-
 
 let MAX_WEIGHT = 22y
 
@@ -22,6 +23,7 @@ type History = {
     accuracy: array<float>
 }
 
+type Outputs = array<byte>
 type Activations = array<bool>
 // weights are signed bytes from -MAX_WEIGHT to MAX_WEIGHT to represent signed integers ±2^weight
 type NodeWeights = array<sbyte>
@@ -105,16 +107,16 @@ let mutateLayerWeights
 
     |> ignore
 
-let maxIntIndex (xs: array<int>) : int =
+let maxOutputIndex (xs: Outputs) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
-let getLoss (outputs: array<int>) (labelIndex: int) : float =
+let getLoss (outputs: Outputs) (labelIndex: int) : float =
     let idealNorm: array<float> =
         Array.init outputs.Length (fun i -> if i = labelIndex then 1. else 0.)
 
     let maxOutput = Array.max outputs
 
-    if maxOutput = 0 then
+    if maxOutput = 0uy then
         1.0
     else
         outputs
@@ -123,10 +125,11 @@ let getLoss (outputs: array<int>) (labelIndex: int) : float =
         // mean absolute error
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
-let getOutputs (outputBools: Activations) : array<int> =
-    outputBools
-    |> Array.chunkBySize 32
-    |> Array.map (fun pool -> pool |> Array.sumBy (fun b -> if b then 1 else 0))
+let getOutputs (outputBools: Activations) : Outputs =
+    let outputs: Outputs = Array.zeroCreate (outputBools.Length / 8)
+    BitArray(outputBools).CopyTo(outputs, 0)
+    outputs
+
 
 type Prediction = {
     intermediateActivations: array<Activations>
@@ -134,7 +137,7 @@ type Prediction = {
 } with
 
     member this.outputs = getOutputs this.outputActivations
-    member this.result = maxIntIndex this.outputs
+    member this.result = maxOutputIndex this.outputs
 
 type Evaluation = { isCorrect: bool; loss: float }
 
@@ -164,7 +167,7 @@ let init (config: Config) : Model =
         } =
         config
 
-    let outputBoolsNb = outputsNb * 32
+    let outputBoolsNb = outputsNb * 8
 
     let parametersNb: int =
         (inputBoolsNb * layerNodesNb)

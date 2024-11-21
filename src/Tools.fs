@@ -102,7 +102,7 @@ let showIntermediateActivations
 
     chart.Display()
 
-let showOutputs (title: string) (outputs: array<int>) : DisplayedValue =
+let showOutputs (title: string) (outputs: Outputs) : DisplayedValue =
     let intOutputs = Array.map int outputs
     let strLabels = Array.map string [| 0 .. outputs.Length - 1 |]
 
