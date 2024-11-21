@@ -2,7 +2,6 @@
 
 open System.IO
 open System
-open System.Collections
 
 open Plotly.NET
 open Plotly.NET.StyleParam
@@ -33,30 +32,13 @@ let loadMnistCsvUnsafeOrder (path: string) : array<int> * array<ByteRow> =
         Array.append
     |> Array.unzip
 
-let byteRowsToBitArraysBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows
-    |> Array.Parallel.map ((Array.map (fun v -> v >= threshold)) >> BitArray)
+let byteToBoolRowsBinarized (threshold: byte) (byteRows: array<ByteRow>) : array<Activations> =
+    byteRows |> Array.Parallel.map (Array.map (fun v -> v >= threshold))
 
-let byteRowsToBitArrays (byteRows: array<ByteRow>) : array<BitArray> =
-    byteRows |> Array.Parallel.map BitArray
+// TODO
+// let byteToBoolRows (byteRows: array<ByteRow>) : array<BitArray> =
+//     byteRows |> Array.Parallel.map BitArray
 
-let layerWeightsToMatrix (layerWeights: LayerWeights) : array<array<int>> =
-    layerWeights
-    |> Array.Parallel.map (fun (plusBits, minusBits) ->
-        let plusBools: array<Boolean> = Array.zeroCreate plusBits.Count
-        plusBits.CopyTo(plusBools, 0)
-        let minusBools: array<Boolean> = Array.zeroCreate minusBits.Count
-        minusBits.CopyTo(minusBools, 0)
-
-        Array.map2
-            (fun plus minus ->
-                match plus, minus with
-                | true, true -> 2
-                | true, false -> 1
-                | false, false -> 0
-                | false, true -> -1)
-            plusBools
-            minusBools)
 
 let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
     let image =
@@ -79,12 +61,11 @@ let showRowDigitBinarized (threshold: byte) (row: ByteRow) : DisplayedValue =
 let showRowDigit (row: ByteRow) : DisplayedValue = showRowDigitBinarized 0uy row
 
 let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedValue =
-    let matrix = layerWeights |> layerWeightsToMatrix
-    let xSize = 80 + max 300 (matrix.Length / 4)
-    let ySize = max 300 (matrix[0].Length / 4)
+    let xSize = 80 + max 300 (layerWeights.Length / 4)
+    let ySize = max 300 (layerWeights[0].Length / 4)
 
     let chart =
-        Chart.Heatmap(matrix, ColorScale = Colorscale.Picnic)
+        Chart.Heatmap(layerWeights, ColorScale = Colorscale.Picnic)
         |> Chart.withTitle title
         |> Chart.withXAxisStyle ("Inputs")
         |> Chart.withYAxisStyle ("Nodes")
@@ -94,18 +75,15 @@ let showLayerWeights (title: string) (layerWeights: LayerWeights) : DisplayedVal
 
     chart.Display()
 
-let bitArraysToMatrix (bitArrays: array<BitArray>) : array<array<int>> =
-    bitArrays
-    |> Array.Parallel.map (fun ba ->
-        let bools: array<Boolean> = Array.zeroCreate ba.Count
-        ba.CopyTo(bools, 0)
-        Array.map (fun bool -> if bool then 1 else 0) bools)
+let activationsArrayToMatrix (activationsArray: array<Activations>) : array<array<int>> =
+    activationsArray
+    |> Array.Parallel.map (Array.map (fun isActive -> if isActive then 1 else 0))
 
 let showIntermediateActivations
     (title: string)
     (interActivations: array<Activations>)
     : DisplayedValue =
-    let matrix = bitArraysToMatrix interActivations
+    let matrix = activationsArrayToMatrix interActivations
 
     let chart =
         Chart.Heatmap(
