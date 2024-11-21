@@ -14,7 +14,7 @@ type Config = {
     layerNodes: int
     layers: int
     learningRate: float
-    thresholdRatio: int
+    threshold: int
     seed: int option
 }
 
@@ -31,17 +31,11 @@ type NodeWeights = array<sbyte>
 type LayerWeights = array<NodeWeights>
 
 
-let getActivationsForTR
-    (thresholdRatio: int)
+let getActivationsAbove
+    (threshold: int)
     (layerWeights: LayerWeights)
     (inputBools: Activations)
     : Activations =
-    let threshold =
-        if thresholdRatio = 0 then
-            0
-        else
-            inputBools.Length / thresholdRatio
-
     layerWeights
     |> Array.Parallel.map (fun nodeWeights ->
         (0, inputBools, nodeWeights)
@@ -212,7 +206,7 @@ let init (config: Config) : Model =
     model
 
 let predict (model: Model) (xs: Activations) : Prediction =
-    let layerOutputs = getActivationsForTR model.config.thresholdRatio
+    let layerOutputs = getActivationsAbove model.config.threshold
 
     let inputActivations = layerOutputs model.inputLayerWeights xs
 
