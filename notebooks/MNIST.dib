@@ -33,9 +33,10 @@ printfn $"Images: {Array.length images}"
 let model = init {
     inputBools = 28 * 28
     outputs = 10
-    layerNodes = 128
-    layers = 3
-    thresholdRatio = 16
+    layerNodes = 1024
+    layers = 2
+    learningRate = 0.3
+    thresholdRatio = 32
     seed = Some(123456)
 }
 
@@ -49,8 +50,8 @@ let boolImages = byteToBoolRowsBinarized 200uy images
 
 #!fsharp
 
-let N = 100
-let model = model |> fit boolImages[0..(N - 1)] labels[0..(N - 1)] 100
+let N = 10
+let model = model |> fit boolImages[0..(N - 1)] labels[0..(N - 1)] 300
 
 #!fsharp
 
@@ -81,10 +82,6 @@ showIntermediateActivations "Last Intermediate Activations" model.lastPrediction
 
 #!fsharp
 
-showIntermediateActivations "Last Output Activations" [| model.lastPrediction.outputActivations |]
-
-#!fsharp
-
 showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPrediction.outputs
 
 #!markdown
@@ -93,14 +90,7 @@ showOutputs $"Last Digit Choice: {model.lastPrediction.result}" model.lastPredic
 
 #!fsharp
 
-let mutate (b: Activations) (w: NodeWeights): unit =
-    inhibitActivatedNodeWeights b w
-// let a = [| 1y |]
-// excite a
-// a
-let lw = [| [| -100y |] |]
-
-let f x = Array.Parallel.mapi (fun i wts -> ([| true |], wts) ||> mutate ) x
-
-f lw
-lw
+let w = [| 0y |]
+exciteActivatedNodeWeights 1y [| true |] w
+// inhibitActivatedNodeWeights 1y [| true |] w
+w

@@ -1,18 +1,19 @@
 ﻿module Graia
 
 open System
+open System.Collections
+
 
 let VERSION = "0.0.1"
 printfn $"🌄 Graia v{VERSION}"
 
-
-let MAX_WEIGHT = 22y
 
 type Config = {
     inputBools: int
     outputs: int
     layerNodes: int
     layers: int
+    learningRate: float
     thresholdRatio: int
     seed: int option
 }
@@ -22,8 +23,9 @@ type History = {
     accuracy: array<float>
 }
 
+type Outputs = array<byte>
 type Activations = array<bool>
-// weights are signed bytes from -MAX_WEIGHT to MAX_WEIGHT to represent signed integers ±2^weight
+// weights are signed bytes from -126 to 126 to represent signed integers ±2^weight
 type NodeWeights = array<sbyte>
 
 type LayerWeights = array<NodeWeights>
@@ -47,8 +49,7 @@ let getActivationsForTR
             if isActive = false || weight = 0y then
                 sum
             else
-                let step = (if weight > 0y then 1 else -1) <<< int ((abs weight) - 1y)
-                sum + step)
+                sum + int weight)
 
         // activation function
         |> fun sum -> sum > threshold
@@ -56,25 +57,34 @@ let getActivationsForTR
     )
 
 // effectful function
-let exciteActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeights) : unit =
+let exciteActivatedNodeWeights
+    (step: sbyte)
+    (inputBools: Activations)
+    (nodeWeights: NodeWeights)
+    : unit =
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- min MAX_WEIGHT (weight + 1y))
+                nodeWeights[i] <- min 126y (weight + step))
         inputBools
         nodeWeights
 
 // effectful function
-let inhibitActivatedNodeWeights (inputBools: Activations) (nodeWeights: NodeWeights) : unit =
+let inhibitActivatedNodeWeights
+    (step: sbyte)
+    (inputBools: Activations)
+    (nodeWeights: NodeWeights)
+    : unit =
     Array.iteri2
         (fun i isActive weight ->
             if isActive then
-                nodeWeights[i] <- max -MAX_WEIGHT (weight - 1y))
+                nodeWeights[i] <- max -126y (weight - step))
         inputBools
         nodeWeights
 
 let mutateLayerWeights
     (wasGood: bool)
+    (step: sbyte)
     (inputBools: Activations)
     (outputBools: Activations)
     (layerWeights: LayerWeights)
@@ -83,8 +93,8 @@ let mutateLayerWeights
     |> Array.Parallel.mapi (fun i nodeWeights ->
         let wasNodeTriggered = outputBools[i]
 
-        (inputBools, nodeWeights)
-        ||>
+        (step, inputBools, nodeWeights)
+        |||>
 
         //  Hebbian learning rule
         if wasGood then
@@ -105,16 +115,16 @@ let mutateLayerWeights
 
     |> ignore
 
-let maxIntIndex (xs: array<int>) : int =
+let maxOutputIndex (xs: Outputs) : int =
     xs |> Array.indexed |> Array.maxBy snd |> fst
 
-let getLoss (outputs: array<int>) (labelIndex: int) : float =
+let getLoss (outputs: Outputs) (labelIndex: int) : float =
     let idealNorm: array<float> =
         Array.init outputs.Length (fun i -> if i = labelIndex then 1. else 0.)
 
     let maxOutput = Array.max outputs
 
-    if maxOutput = 0 then
+    if maxOutput = 0uy then
         1.0
     else
         outputs
@@ -123,10 +133,11 @@ let getLoss (outputs: array<int>) (labelIndex: int) : float =
         // mean absolute error
         |> Array.averageBy (fun (ideal, final) -> abs (final - ideal))
 
-let getOutputs (outputBools: Activations) : array<int> =
-    outputBools
-    |> Array.chunkBySize 32
-    |> Array.map (fun pool -> pool |> Array.sumBy (fun b -> if b then 1 else 0))
+let getOutputs (outputBools: Activations) : Outputs =
+    let outputs: Outputs = Array.zeroCreate (outputBools.Length / 8)
+    BitArray(outputBools).CopyTo(outputs, 0)
+    outputs
+
 
 type Prediction = {
     intermediateActivations: array<Activations>
@@ -134,7 +145,7 @@ type Prediction = {
 } with
 
     member this.outputs = getOutputs this.outputActivations
-    member this.result = maxIntIndex this.outputs
+    member this.result = maxOutputIndex this.outputs
 
 type Evaluation = { isCorrect: bool; loss: float }
 
@@ -164,7 +175,7 @@ let init (config: Config) : Model =
         } =
         config
 
-    let outputBoolsNb = outputsNb * 32
+    let outputBoolsNb = outputsNb * 8
 
     let parametersNb: int =
         (inputBoolsNb * layerNodesNb)
@@ -177,7 +188,7 @@ let init (config: Config) : Model =
         | None -> Random()
 
     let randomWeights (length: int) : NodeWeights =
-        Array.init length (fun _ -> rnd.Next(int -MAX_WEIGHT, int MAX_WEIGHT + 1) |> sbyte)
+        Array.init length (fun _ -> rnd.Next(-126, 127) |> sbyte)
 
     let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
         Array.init outputDim (fun _ -> randomWeights inputDim)
@@ -220,8 +231,11 @@ let predict (model: Model) (xs: Activations) : Prediction =
         outputActivations = outputActivations
     }
 
-let teachModel (isGood: bool) (model: Model) (inputBools: Activations) (pred: Prediction) : unit =
-    let teachLayer = mutateLayerWeights isGood
+let teachModel (model: Model) (loss: float) (inputBools: Activations) (pred: Prediction) : unit =
+    let { loss = previousLoss } = evaluate model.lastPrediction model.lastAnswer
+    let isBetter = loss < previousLoss
+    let step = 126. * loss * model.config.learningRate |> sbyte
+    let teachLayer = mutateLayerWeights isBetter step
 
     model.inputLayerWeights
     |> teachLayer inputBools pred.intermediateActivations[0]
@@ -245,10 +259,8 @@ let rowFit
     let pred: Prediction = predict model inputBools
 
     let { loss = loss; isCorrect = isCorrect } = evaluate pred labelIndex
-    let { loss = previousLoss } = evaluate model.lastPrediction model.lastAnswer
 
-    let isBetter = loss < previousLoss
-    teachModel isBetter model inputBools pred
+    teachModel model loss inputBools pred
 
     {
         model with
