@@ -177,9 +177,7 @@ let init (config: Config) : Model =
         | None -> Random()
 
     let randomWeights (length: int) : NodeWeights =
-        let bytes = Array.zeroCreate length
-        rnd.NextBytes bytes
-        bytes |> Array.map (fun x -> sbyte (int x - 127))
+        Array.init length (fun _ -> rnd.Next(int -MAX_WEIGHT, int MAX_WEIGHT + 1) |> sbyte)
 
     let randomLayerWeights (inputDim: int) (outputDim: int) : LayerWeights =
         Array.init outputDim (fun _ -> randomWeights inputDim)
