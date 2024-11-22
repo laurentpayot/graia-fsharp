@@ -25,7 +25,7 @@ type History = {
 
 type Outputs = array<byte>
 type Activations = array<bool>
-// weights are signed bytes from -126 to 126 to represent signed integers ±2^weight
+// weights are signed bytes from -126 to 126
 type NodeWeights = array<sbyte>
 
 type LayerWeights = array<NodeWeights>
