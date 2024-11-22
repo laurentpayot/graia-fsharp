@@ -171,10 +171,12 @@ let init (config: Config) : Model =
 
     let outputBoolsNb = outputsNb * 8
 
-    let parametersNb: int =
+    let billionParameters =
         (inputBoolsNb * layerNodesNb)
         + (layerNodesNb * layerNodesNb * (layersNb - 1))
         + (layerNodesNb * outputBoolsNb)
+        |> float
+        |> fun n -> n / 1_000_000_000.
 
     let rnd =
         match seed with
@@ -202,7 +204,7 @@ let init (config: Config) : Model =
         history = { loss = [||]; accuracy = [||] }
     }
 
-    printfn $"🌄 Graia model with {parametersNb} parameters ready."
+    printfn $"🌄 Graia model with {billionParameters} billion parameters ready."
     model
 
 let predict (model: Model) (xs: Activations) : Prediction =
